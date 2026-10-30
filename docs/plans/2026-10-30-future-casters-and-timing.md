@@ -1,6 +1,6 @@
 # Future casters and Smart Order timing
 
-Status: implementation and native acceptance complete; final delivery below.
+Status: implementation, native acceptance, package verification and fork push complete.
 Single-player EET/BG2EE is the tested scope. IWD:EE was deliberately not run.
 
 ## Accepted behavior
@@ -75,7 +75,8 @@ Single-player EET/BG2EE is the tested scope. IWD:EE was deliberately not run.
 - [x] Fresh on-disk beta.5 loads: modules present, idle, normal rate, no live loan.
 - [x] README, feature guide, comparison and evidence index updated.
 - [x] Player archive verified (463 files, bundled art hashes and source equality).
-- [ ] Commit and push verified against Redux fork.
+- [x] Implementation commit `00f3b65` pushed to Redux fork `main`; remote SHA
+      verified. This final documentation checkpoint records that verification.
 
 Evidence: [October 30 review](../visual-review/evidence/2026-10-30/README.md).
 

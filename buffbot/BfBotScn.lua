@@ -179,7 +179,7 @@ local function _buildCatalogEntry(sprite, resref, header, ability, casterLevel)
     -- Targeting flags (0/1 integers — no booleans in scan entries)
     local isAoE = (classResult and classResult.isAoE) and 1 or 0
     local isSelfOnly = (classResult and classResult.isSelfOnly) and 1 or 0
-    local radialParty=BfBot.Class.IsRadialParty and BfBot.Class.IsRadialParty(ability) or false
+    local radialParty=BfBot.Class.IsRadialParty and BfBot.Class.IsRadialParty(ability,header,casterLevel) or false
     if radialParty then isAoE,isSelfOnly=1,0 end
 
     -- Variant detection (0/1 integer flag + variant array)

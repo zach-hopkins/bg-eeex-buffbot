@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — beta.5 fixes
+
+- Recognize caster-centered buffs delivered through friendly area child spells,
+  including this install's Chant, Prayer and similar wrappers. Their predicted
+  summon uses now appear when the creation step is enabled, and existing
+  caster-specific requests migrate to one Party cast with their source retained.
+- Stop treating a stale engine press counter as a selected button. Only the
+  current tab or saved order mode keeps its selected highlight.
+- Hovering a spell name or selected recipient chip shows its assigned source
+  after 750 ms, in a silent, stable box beside the pointer.
+
 ## v1.10.1-redux-beta.5 — 30 October 2026
 
 - Maintain Redux as an independent single-player alternative. Retire the exposed caster editor, character filter tabs and obsolete preset-innate installation/TLK plumbing; preserve saved recipient plans.

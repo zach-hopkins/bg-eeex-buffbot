@@ -5233,6 +5233,58 @@ label
  enabled "BfBot.Exec.GetState()=='running'"
  text align center center
 }
+label
+{
+ name "rxHoverBody"
+ area 0 0 100 30
+ enabled "BfBot.Visual.hoverVisible==true and BfBot.Visual.popup==nil"
+ fill 15 12 9 251
+ ignoreEvents
+}
+label
+{
+ name "rxHoverTop"
+ area 0 0 100 30
+ enabled "BfBot.Visual.hoverVisible==true and BfBot.Visual.popup==nil"
+ fill 176 138 74 230
+ ignoreEvents
+}
+label
+{
+ name "rxHoverBottom"
+ area 0 0 100 30
+ enabled "BfBot.Visual.hoverVisible==true and BfBot.Visual.popup==nil"
+ fill 176 138 74 230
+ ignoreEvents
+}
+label
+{
+ name "rxHoverLeft"
+ area 0 0 100 30
+ enabled "BfBot.Visual.hoverVisible==true and BfBot.Visual.popup==nil"
+ fill 176 138 74 230
+ ignoreEvents
+}
+label
+{
+ name "rxHoverRight"
+ area 0 0 100 30
+ enabled "BfBot.Visual.hoverVisible==true and BfBot.Visual.popup==nil"
+ fill 176 138 74 230
+ ignoreEvents
+}
+label
+{
+ name "rxHoverText"
+ area 0 0 100 30
+ text lua "BfBot.Visual.hover and BfBot.Visual.hover.text or ''"
+ text style "bvr_text"
+ text point 14
+ text align left center
+ ignoreEvents
+ enabled "BfBot.Visual.hoverVisible==true and BfBot.Visual.popup==nil"
+ text align left top
+}
 }
 menu
 {

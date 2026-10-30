@@ -100,7 +100,7 @@ function V.Open()
     V.active=true;Infinity_PushMenu('BUFFBOT_RX')
 end
 function V.OnOpen() U.Refresh();V.Layout() end
-function V.Close() V.ClosePopup();Infinity_PopMenu('BUFFBOT_RX');V.active=false end
+function V.Close() V.HideHover();V.ClosePopup();Infinity_PopMenu('BUFFBOT_RX');V.active=false end
 function V.AbsorbClick() end
 function V.LayoutHudTrigger(name)
     local ui=BfBot.UI
@@ -108,14 +108,10 @@ function V.LayoutHudTrigger(name)
         Infinity_SetArea(name,ui._hudX+4,ui._hudY+4,48,48)
     else Infinity_SetArea(name,0,0,0,0) end
 end
--- Upstream's engine-owned hold counter; a selected tab outranks a press.
+-- framesHeld can retain its last nonzero value after release. Persistent
+-- highlights must come exclusively from the selected tab/mode/popup state.
 function V.ButtonFrame(name,normal,pressed)
-    if normal and normal~=0 then return normal end
-    if EEex_Menu_GetItem then
-        local ok,held=pcall(function()local item=EEex_Menu_GetItem(name);return item and item.framesHeld end)
-        if ok and type(held)=='number' and held>0 then return pressed or 2 end
-    end
-    return 0
+    return normal or 0
 end
 function V.ClosePopup()
     if V.rename and U.preset then bbPartyName=U.preset.name end
@@ -310,7 +306,7 @@ function V.LayoutDialog()
     area('rxDialogEmptyTitle',32,100,w-64,30);area('rxDialogEmptyBody',32,136,w-64,76)
 end
 function V.ChangeView(view) U.SetView(view);V.Layout() end
-function V.Tick() U.Tick();return false end
+function V.Tick() U.Tick();V.UpdateHover();return false end
 function V.RestText()
     local rest=U.state and U.state.rest;local preset=rest and U.state.presets[rest.preset]
     return P.Text('After rest')..'  '..(rest and rest.on==1 and preset and preset.name or P.Text('Off'))
@@ -353,6 +349,90 @@ function V.ChipSourceTip(i,k)
     local d=chip.decision
     return P.Text('Spell Source: ')..(d and d.source and d.source.casterName or P.Text('No available source'))
         ..'\n'..P.Text('Choose a different source for ')..chip.name
+end
+function V.ChipTip(i,k)
+    local chip=V.Chip(i,k)
+    if not chip then return '' end
+    if not chip.checked then return '' end
+    local d=chip.decision
+    return P.Text('Source: ')
+        ..(d and d.source and d.source.casterName or P.Text('No available source'))
+end
+-- Native list tooltips anchor to the entire list and restart their scroll
+-- animation/sound. Use a passive, cached hint beside the actual hover instead.
+function V.DashboardTip()return ''end -- suppress an already-loaded old menu
+function V.DashboardHover()
+    if V.popup or not U.IsDashboard() or not EEex_Menu_GetMousePos then return nil end
+    local name='rxDashboard'..(V.wide and 'Wide' or '')
+    local ok,hover=pcall(function()
+        local x,y,w,h=EEex_Menu_GetItemArea(name)
+        local mx,my=EEex_Menu_GetMousePos()
+        if not x or mx<x or mx>=x+w-28 or my<y or my>=y+h then return '' end
+        local item=EEex_Menu_GetItem(name)
+        local top=item and item.scrollbar and item.scrollbar.top or 0
+        local i=math.floor((my-y+top)/(V.wide and 54 or 48))+1
+        local row=bbPartyRows[i];if not row or row.heading then return '' end
+        local function result(text,part)
+            if not text or text==''then return nil end
+            return {text=text,key=tostring(row.id or i)..':'..part,x=mx,y=my}
+        end
+        local width=w-28
+        local cursor=0
+        for column,percent in ipairs(V.wide and {3,22,4,7}or{4,20,5,9})do
+            cursor=cursor+math.floor(width*percent/100)
+            if mx-x<cursor then
+                return result(column==3 and U.UsesTip(i) or V.RowTip(i),'column'..column)
+            end
+        end
+        local body=math.floor(width*(V.wide and 8 or 7)/100)
+        local gear=math.floor(width*2/100)
+        for k=1,6 do
+            cursor=cursor+body
+            if mx-x<cursor then return result(V.ChipTip(i,k),'recipient'..k) end
+            cursor=cursor+gear
+            if mx-x<cursor then return result(V.ChipSourceTip(i,k),'gear'..k) end
+        end
+        return ''
+    end)
+    return ok and type(hover)=='table'and hover or nil
+end
+function V.HideHover()
+    V.hoverVisible=false;V.hover=nil
+end
+function V.UpdateHover()
+    if not V.active then return V.HideHover() end
+    local nextHover=V.DashboardHover()
+    if type(nextHover)~='table'then return V.HideHover() end
+    local now=Infinity_GetClockTicks()
+    local old=V.hover
+    if not old or old.key~=nextHover.key or old.text~=nextHover.text then
+        nextHover.since=now;V.hover=nextHover;V.hoverVisible=false;return
+    end
+    if V.hoverVisible or now-old.since<750 then return end
+    local maxWidth=V.wide and 420 or 340
+    local w,h
+    if EEex_Menu_GetTextWidthHeight and styles and styles.bvr_text then
+        local ok,tw,th=pcall(EEex_Menu_GetTextWidthHeight,old.text,styles.bvr_text.font,14,true,maxWidth-24)
+        if ok and type(tw)=='number'and type(th)=='number'then w,h=tw+24,th+16 end
+    end
+    if not w then
+        local longest,rows=0,0
+        for line in (old.text..'\n'):gmatch('(.-)\n')do
+            longest=math.max(longest,#line*8);rows=rows+math.max(1,math.ceil(#line*8/(maxWidth-24)))
+        end
+        w,h=math.min(maxWidth,longest+24),rows*22+16
+    end
+    w=math.min(maxWidth,math.max(120,w));h=math.max(36,h)
+    local sw,sh=Infinity_GetScreenSize();h=math.min(sh-16,h)
+    local x=math.max(8,math.min(old.x+12,sw-w-8))
+    local y=old.y-h-12;if y<8 then y=math.min(old.y+20,sh-h-8)end
+    local function area(name,dx,dy,aw,ah)
+        Infinity_SetArea(name,math.floor(x+dx),math.floor(y+dy),math.ceil(aw),math.ceil(ah))
+    end
+    area('rxHoverBody',0,0,w,h);area('rxHoverText',12,8,w-24,h-16)
+    area('rxHoverTop',0,0,w,1);area('rxHoverBottom',0,h-1,w,1)
+    area('rxHoverLeft',0,0,1,h);area('rxHoverRight',w-1,0,1,h)
+    old.rect={x,y,w,h};V.hoverVisible=true
 end
 -- Capture the click before pushing a menu: onopen needs the final anchor.
 -- The engine's live pointer avoids guessing the scrolled row's screen Y.
@@ -439,7 +519,16 @@ function V.RowQualifier(i)
 end
 function V.RowTitle(i) local r=bbPartyRows[i];return r and r.name or '' end
 function V.RowName(i) local q=V.RowQualifier(i);return V.RowTitle(i)..(q~='' and ('\n'..q) or '') end
-function V.RowTip(i) return V.RowName(i) end
+function V.RowTip(i)
+    local row=bbPartyRows[i];local out={V.RowName(i)}
+    if row and not row.heading then
+        for k=1,6 do
+            local chip=V.Chip(i,k)
+            if chip and chip.checked then out[#out+1]=chip.name..': '..V.ChipTip(i,k) end
+        end
+    end
+    return table.concat(out,'\n')
+end
 function V.Empty()
     if not U.preset then return false end
     return U.IsDashboard() and #bbPartyRows==0 or not U.IsDashboard() and #U.preset.requests==0

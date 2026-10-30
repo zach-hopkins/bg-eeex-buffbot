@@ -816,8 +816,7 @@ end
 
 -- A caster-centered spell can still deliver to nearby allies. Recognize that
 -- from its actual projectile, rather than a spell-name compatibility list.
-function BfBot.Class.IsRadialParty(ability)
-    if not BfBot.Class.IsSelfOnly(ability) then return false end
+local function friendlyAreaProjectile(ability)
     local missile=ability.missileType
     if type(missile)~='number' or missile<=1 then return false end
     local C=BfBot.Class
@@ -837,6 +836,36 @@ function BfBot.Class.IsRadialParty(ability)
     end)
     C._radialProjectiles[missile]=ok and party==true
     return C._radialProjectiles[missile]
+end
+
+function BfBot.Class.IsRadialParty(ability,header,casterLevel)
+    if not BfBot.Class.IsSelfOnly(ability) then return false end
+    if friendlyAreaProjectile(ability) then return true end
+    if not header or type(BfBot._fields)~='table' then return false end
+    -- SCS/IWD-style Chant and Prayer cast two children on the caster: a
+    -- friendly area buff and a separate hostile debuff. Inspect delivery,
+    -- not the parent's personal target or localized spell name. Restrict
+    -- traversal to self-delivered casts; personal buffs remain personal.
+    local seen,budget={},64
+    local function scan(h,a,depth)
+        if depth>=4 then return false end
+        local found=false
+        BfBot.Class._IterateFeatureBlocks(h,a,function(fb)
+            budget=budget-1;if budget<0 then return true end
+            local target=fb[BfBot._fields.fb_target]
+            if fb[BfBot._fields.fb_opcode]~=146 or (target~=1 and target~=2) then return end
+            local res=_subSpellRef(fb);if not res then return end
+            res=res:upper();if seen[res] then return end;seen[res]=true
+            local ok,result=pcall(function()
+                local child=EEex_Resource_Demand(res,'SPL')
+                local nextAbility=child and (child:getAbilityForLevel(casterLevel or 1)or child:getAbility(0))
+                return nextAbility and (friendlyAreaProjectile(nextAbility) or scan(child,nextAbility,depth+1))
+            end)
+            if ok and result then found=true;return true end
+        end)
+        return found
+    end
+    return scan(header,ability,0)
 end
 
 --- Determine the smart default target for a spell.

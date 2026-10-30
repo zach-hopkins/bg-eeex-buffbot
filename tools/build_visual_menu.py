@@ -40,6 +40,13 @@ def column(width,labels):
     emit(' }')
 def finish_list(name,table,var,action,enabled,rowheight):
     emit(f' name "{name}"\n table "{table}"\n var "{var}"\n action "{action}"\n enabled "{enabled}"\n rowheight {rowheight}\n scrollbar "RGDSCRL1"\n hidehighlight\n area 68 160 1152 464\n}}')
+
+def hover_hint():
+    shown=f'{V}.hoverVisible==true and {V}.popup==nil'
+    widget('label','rxHoverBody',[f'enabled "{shown}"','fill 15 12 9 251','ignoreEvents'])
+    for edge in ['Top','Bottom','Left','Right']:
+        widget('label','rxHover'+edge,[f'enabled "{shown}"','fill 176 138 74 230','ignoreEvents'])
+    label('rxHoverText',f"{V}.hover and {V}.hover.text or ''",enabled=shown,extra=['text align left top'])
 def buffs():
     global ROWHEIGHT
     shown=f'{U}.IsDashboard()'
@@ -251,6 +258,7 @@ def main(stage):
     button('rxHidden',f"{U}.OpenChoices('hidden')",f"{P}.Text('Hidden')",enabled=f'{U}.IsDashboard()')
     button('rxCast',f'{U}.Cast()',f"{P}.Text('Cast')",'RGDBUTS3',enabled=f'{U}.CanCast()',style='tab')
     button('rxStop',f'{V}.Stop()',f"{P}.Text('Stop')",'RGDBUTS3',frame='2',enabled="BfBot.Exec.GetState()=='running'",style='tab')
+    hover_hint()
     emit('}')
     if stage>=5:menus()
     if stage>=6:dialogs()

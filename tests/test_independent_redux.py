@@ -1,5 +1,6 @@
 """The single Redux dashboard exposes policy and source edits without legacy views."""
 from pathlib import Path
+import pytest
 from lupa.luajit21 import LuaRuntime
 from test_visual_redesign import visual
 from test_party_dashboard import dashboard
@@ -54,13 +55,84 @@ def test_chip_gear_edits_only_its_recipient_and_retains_other_requests(visual):
     ''')
 
 
-def test_selected_and_held_frames_and_failed_engine_lookup(visual):
+def test_released_buttons_ignore_stale_hold_counters_and_keep_selected_state(visual):
     assert visual.execute('''
       EEex_Menu_GetItem=function()return {framesHeld=1}end
-      assert(V.ButtonFrame('rxCast',0)==2 and V.ButtonFrame('rxBuffs',2)==2)
-      assert(V.ButtonFrame('rxOptions',0,1)==1)
+      assert(V.ButtonFrame('rxCast',0)==0 and V.ButtonFrame('rxBuffs',2)==2)
+      assert(V.ButtonFrame('rxOptions',0,1)==0)
+      assert(V.ButtonFrame('rxBuffs',0)==0 and V.ButtonFrame('rxOrder',2)==2)
+      assert(V.ButtonFrame('rxOrder',0)==0 and V.ButtonFrame('rxSummary',2)==2)
       EEex_Menu_GetItem=function()error('unavailable')end
       return V.ButtonFrame('rxCast',0)==0
+    ''')
+
+
+def test_selected_spell_and_chip_tooltips_show_assigned_source(visual):
+    assert visual.execute('''
+      local s=snapshot();source(s,'WARD','A',120,'a',2);source(s,'WARD','B',60,'b',2)
+      setup(s,{request('WARD','A'),request('WARD','B')});findrow('WARD')
+      U.EditRecipientSource(bbPartyRowSelection,2);U.SetCaster('B');findrow('WARD')
+      local tip=V.RowTip(bbPartyRowSelection)
+      return V.ChipTip(bbPartyRowSelection,2):find('Source: B',1,true)~=nil
+        and tip:find('Source: B',1,true)~=nil and tip:find('Source: A',1,true)~=nil
+    ''')
+
+
+@pytest.mark.parametrize('wide',[False,True])
+def test_list_tooltip_uses_hovered_recipient_and_scroll_not_selected_row(visual,wide):
+    visual.globals().wide=wide
+    assert visual.execute('''
+      local s=snapshot();source(s,'WARD','A',120,'a',2);source(s,'WARD','B',60,'b',2)
+      setup(s,{request('WARD','A'),request('WARD','B')});findrow('WARD')
+      U.EditRecipientSource(bbPartyRowSelection,2);U.SetCaster('B');findrow('WARD')
+      V.popup=nil;V.wide=wide
+      local index=bbPartyRowSelection;local width=wide and 1764 or 1124
+      local rh=wide and 54 or 48;local prefix=0
+      for _,p in ipairs(wide and {3,22,4,7}or{4,20,5,9})do prefix=prefix+math.floor(width*p/100)end
+      local chip=math.floor(width*(wide and 10 or 9)/100)
+      EEex_Menu_GetItemArea=function()return 100,200,width+28,464 end
+      EEex_Menu_GetItem=function()return {scrollbar={top=(index-1)*rh+10}}end
+      local mx,my=100+prefix+chip*1.5,210
+      EEex_Menu_GetMousePos=function()return mx,my end
+      bbPartyRowSelection=999
+      assert(V.DashboardHover().text:find('Source: B',1,true))
+      mx=100+prefix+chip*.5
+      assert(V.DashboardHover().text:find('Source: A',1,true))
+      V.popup='menu';assert(V.DashboardHover()==nil);V.popup=nil
+      mx=100+width+5;assert(V.DashboardHover()==nil)
+      mx=90;return V.DashboardHover()==nil
+    ''')
+
+
+def test_source_hover_is_passive_and_does_not_trigger_native_scroll_tooltips():
+    menu=(ROOT/'buffbot/BfBotRx.menu').read_text(encoding='utf-8')
+    assert 'tooltip lua "BfBot.Visual.DashboardTip()"' not in menu
+    hint=menu[menu.index('name "rxHoverText"'):]
+    assert 'ignoreEvents' in hint.split('}')[0]
+
+
+def test_hover_hint_positions_once_per_recipient_and_is_silent_and_bounded(visual):
+    assert visual.execute('''
+      V.active=true;local now=0;local changes=0
+      Infinity_GetClockTicks=function()return now end
+      Infinity_GetScreenSize=function()return 1280,720 end
+      Infinity_SetArea=function()changes=changes+1 end
+      local target={text='Source: Anomen',key='ward:one',x=1260,y=25}
+      V.DashboardHover=function()return target end
+      V.UpdateHover();assert(not V.hoverVisible and changes==0)
+      now=749;V.UpdateHover();assert(not V.hoverVisible and changes==0)
+      now=750;V.UpdateHover();assert(V.hoverVisible and changes==6)
+      local rect=V.hover.rect
+      assert(rect[1]>=8 and rect[1]+rect[3]<=1272 and rect[2]>=8 and rect[2]+rect[4]<=712)
+      target={text=target.text,key=target.key,x=1250,y=30}
+      for i=1,30 do now=now+40;V.UpdateHover()end
+      assert(changes==6 and V.hoverVisible)
+      target=nil;V.UpdateHover();assert(not V.hoverVisible)
+      target={text='Source: Aerie',key='ward:two',x=300,y=400}
+      V.UpdateHover();now=now+749;V.UpdateHover();assert(not V.hoverVisible and changes==6)
+      now=now+1;V.UpdateHover()
+      assert(V.hoverVisible and changes==12)
+      return V.DashboardTip()==''
     ''')
 
 

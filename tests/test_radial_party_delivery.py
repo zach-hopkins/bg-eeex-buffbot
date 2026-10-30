@@ -34,6 +34,40 @@ def test_projectile_structure_controls_party_delivery(target,kind,flags,radius,e
     ''') is expected
 
 
+@pytest.mark.parametrize('child_missile,effect_target,cycle,expected',[
+    (337,1,False,True), (338,1,False,False),
+    (337,6,False,False), (1,1,False,False), (1,1,True,False),
+])
+def test_caster_wrappers_find_friendly_area_children_without_leaking_personal_spells(
+        child_missile,effect_target,cycle,expected):
+    r=LuaRuntime(unpack_returned_tuples=True)
+    r.execute("BfBot={_fields={fb_opcode='op',fb_target='target',fb_res='res'}}")
+    r.execute((ROOT/'buffbot/BfBotCls.lua').read_text(encoding='utf-8'))
+    r.globals().missile=child_missile;r.globals().effect_target=effect_target;r.globals().cycle=cycle
+    assert r.execute('''
+      local parent={actionType=5,missileType=1}
+      local child={actionType=4,missileType=missile}
+      local h={getAbilityForLevel=function()return child end}
+      local visits=0
+      BfBot.Class._IterateFeatureBlocks=function(_,a,fn)
+        visits=visits+1;assert(visits<=5)
+        if a==parent or cycle then fn({op=146,target=effect_target,res='CHILD'})end
+      end
+      EEex_Resource_LoadIDS=function()return {getLine=function(_,id)return id==336 and 'FRIENDLY'or'HOSTILE'end}end
+      EEex_Resource_Demand=function(res,kind)
+        if kind=='SPL'then return h end
+        return {m_wFileType=3,friendly=res=='FRIENDLY'}
+      end
+      EEex_UDToPtr=function(pro)return pro.friendly and 1000 or 2000 end
+      EEex_ReadU16=function(p)
+        if p==1000+0x1F8 then return 0xC0 end
+        if p==2000+0x1F8 then return 0x80 end
+        return 171
+      end
+      return BfBot.Class.IsRadialParty(parent,{},13)
+    ''') is expected
+
+
 def test_radial_request_upgrade_keeps_caster_order_variant_and_disabled_state(planner):
     assert planner.execute('''
       local s={groups={RADIAL={sources={{actor='CLERIC',row={radialParty=true}}}},

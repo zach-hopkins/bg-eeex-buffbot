@@ -34,7 +34,7 @@ function V.InstallStyles()
     local textFont=EEex_Resource_Fetch and EEex_Resource_Fetch('RGFONT','TTF') and 'RGFONT' or 'NORMAL'
     local displayFont=EEex_Resource_Fetch and EEex_Resource_Fetch('RGTRAJ','TTF') and 'RGTRAJ' or 'STONESML'
     local defs={text={'text.primary','RGFONT',14},textwide={'text.primary','RGFONT',15},chipwide={'text.primary','RGFONT',14},muted={'text.muted','RGFONT',12},small={'text.primary','RGFONT',12},
-        header={'text.groupLabel','RGTRAJ',12},tab={'text.tabActive','RGTRAJ',15},button={'text.button','RGTRAJ',13},
+        feedback={'text.primary','RGFONT',16},header={'text.groupLabel','RGTRAJ',12},tab={'text.tabActive','RGTRAJ',15},button={'text.button','RGTRAJ',13},
         display={'text.title','RGTRAJ',14},title={'text.title','RGTRAJ',15},error={'text.primary','RGFONT',12}}
     for name,def in pairs(defs) do
         local key=V.palette[name]
@@ -68,13 +68,18 @@ function V.Layout()
     for i=0,2 do area('rxWell'..i,58,U.IsDashboard() and 126 or 86,V.w-116,V.h-(U.IsDashboard() and 214 or 174)) end
     for i=1,40 do local r=D.frames[V.FrameKey()][i];area('rxFrame'..i,unpack(r and r.rect or {0,0,0,0})) end
     local skin=D.theme.skins[V.Skin()].geometry;local y=skin.topRowY;local tw=V.wide and 136 or 118
-    for i,n in ipairs({'rxBuffs','rxOrder','rxSummary'}) do area(n,64+(i-1)*(tw+6),y,tw,30) end
+    local tx=64
+    for i,n in ipairs({'rxBuffs','rxOrder','rxSummary'}) do
+        local width=i==1 and (V.wide and 190 or 168) or tw
+        area(n,tx,y,width,30);tx=tx+width+6
+    end
     local dragon=V.SkinIndex()==0
     local cx=dragon and V.w-48 or (V.wide and skin['closeX.wide'] or skin['closeX.compact'])
     local right=dragon and V.w-100 or ((V.SkinIndex()==1 or V.SkinIndex()==2) and V.w-62 or cx-10)
     local pw=V.wide and 260 or 224
     area('rxPreset',right-72-pw,y,pw,30);area('rxPresetText',right-66-pw,y,pw-24,30);area('rxPresetChevron',right-92,y+7,16,16)
     area('rxNew',right-66,y,30,30);area('rxOptions',right-30,y,30,30);area('rxClose',cx,dragon and 22 or skin.closeY,38,38)
+    V.LayoutHudTrigger('rxHudTrigger')
     local fy=V.h-82;local rw=V.wide and 300 or 250
     area('rxRest',60,fy+2,rw,30);area('rxRestIcon',64,fy+6,22,22);area('rxRestText',90,fy+2,rw-52,30);area('rxRestChevron',60+rw-22,fy+9,16,16)
     area('rxStatus',70+rw,fy+1,420,32);area('rxFeedback',60,V.h-43,V.w-120,20)
@@ -97,6 +102,21 @@ end
 function V.OnOpen() U.Refresh();V.Layout() end
 function V.Close() V.ClosePopup();Infinity_PopMenu('BUFFBOT_RX');V.active=false end
 function V.AbsorbClick() end
+function V.LayoutHudTrigger(name)
+    local ui=BfBot.UI
+    if ui and type(ui._hudX)=='number' and type(ui._hudY)=='number' then
+        Infinity_SetArea(name,ui._hudX+4,ui._hudY+4,48,48)
+    else Infinity_SetArea(name,0,0,0,0) end
+end
+-- Upstream's engine-owned hold counter; a selected tab outranks a press.
+function V.ButtonFrame(name,normal,pressed)
+    if normal and normal~=0 then return normal end
+    if EEex_Menu_GetItem then
+        local ok,held=pcall(function()local item=EEex_Menu_GetItem(name);return item and item.framesHeld end)
+        if ok and type(held)=='number' and held>0 then return pressed or 2 end
+    end
+    return 0
+end
 function V.ClosePopup()
     if V.rename and U.preset then bbPartyName=U.preset.name end
     for _,name in ipairs({'BUFFBOT_RX_POPMENU','BUFFBOT_RX_DIALOG'}) do
@@ -122,6 +142,7 @@ function V.ChoiceCurrent(i)
     local r=bbPartyChoices[i];if not r then return false end
     if r.kind=='preset' then return r.value==U.state.active end
     if r.kind=='rest' then return r.value==(U.state.rest.on==1 and U.state.rest.preset or 0) end
+    if r.kind=='activeMode' then return r.value==BfBot.Exec.GetForceMode() end
     if U.choiceMode=='caster' then return r.name:sub(1,4)=='[x] ' end
     if r.kind=='theme' then return U.state.skin==r.value or U.state.skin==nil and r.value==-1 end
     if r.kind=='castingMode' then return U.state.fast==1 and U.state.fastRate==r.value or U.state.fast~=1 and r.value==0 end
@@ -165,10 +186,12 @@ function V.LayoutPopup()
     if above then y=anchor.y-(anchor.h or 30)-h-8 end
     y=math.max(V.y+40,math.min(y,V.y+V.h-40-h))
     V.popupAbove=above;V.popupRect={x,y,w,h}
+    V.LayoutHudTrigger('rxMenuHudTrigger')
     -- The menu's click shield covers the main panel. Repeat its trigger hit
     -- region on this surface so the same button can toggle the menu closed.
     if caster then
-        Infinity_SetArea('rxMenuTrigger',anchor.x,anchor.y-(anchor.h or 30),anchor.w,anchor.h or 30)
+        local trigger=anchor.trigger or {x=anchor.x,y=anchor.y-(anchor.h or 30),w=anchor.w,h=anchor.h or 30}
+        Infinity_SetArea('rxMenuTrigger',trigger.x,trigger.y,trigger.w,trigger.h)
     else
         local trigger=mode=='presets' and 'rxPreset' or mode=='rest' and 'rxRest' or 'rxOptions'
         Infinity_SetArea('rxMenuTrigger',EEex_Menu_GetItemArea(trigger))
@@ -198,14 +221,14 @@ end
 function V.DialogTitle()
     if V.rename then return P.Text(V.namingNew and 'New preset' or 'Rename preset') end
     if U.choiceMode=='sources' then return U.BuffName(U.snapshot.groups[U.choiceGroup],U.choiceVariant) end
-    if U.choiceMode=='delete' or U.choiceMode=='planImport' or U.choiceMode=='casting' or U.choiceMode=='theme' then return bbPartyChoiceTitle end
+    if U.choiceMode=='delete' or U.choiceMode=='planImport' or U.choiceMode=='casting' or U.choiceMode=='theme' or U.choiceMode=='activeBuffs' then return bbPartyChoiceTitle end
     return P.Text(U.choiceMode=='hidden' and 'Hidden buffs' or 'Add spell / item')
 end
 function V.DialogSubtitle()
     if V.rename then return U.preset.name..' / '..#U.preset.requests..' '..P.Text('requests') end
     if U.choiceMode=='add' then return P.Text('Known abilities the browser leaves out / adding does not grant uses') end
     if U.choiceMode=='hidden' then return P.Text('Hidden from the browser / saved requests are kept') end
-    if U.choiceMode=='delete' or U.choiceMode=='planImport' or U.choiceMode=='casting' or U.choiceMode=='theme' then return bbPartyChoiceHint end
+    if U.choiceMode=='delete' or U.choiceMode=='planImport' or U.choiceMode=='casting' or U.choiceMode=='theme' or U.choiceMode=='activeBuffs' then return bbPartyChoiceHint end
     local g=U.snapshot.groups[U.choiceGroup]
     return g and ((g.kind=='itm' and P.Text('Item') or P.Text('Spell'))..' / '..P.Text('Available casters and remaining uses')) or ''
 end
@@ -304,6 +327,11 @@ function V.Chip(i,k)
 end
 function V.ChipChecked(i,k) local c=V.Chip(i,k);return c and c.checked or false end
 function V.ChipError(i,k) local c=V.Chip(i,k);return c and c.checked and not c.available or false end
+function V.ChipSourceOpen(i,k)
+    local c=V.Chip(i,k)
+    return V.popup=='menu' and U.choiceMode=='caster' and c and c.index
+        and U.preset.requests[c.index]==U.choiceRequest or false
+end
 function V.ShortName(value,limit)
     local chars={};for c in tostring(value or ''):gmatch(utf8Glyph) do chars[#chars+1]=c end
     return #chars<=limit and tostring(value or '') or table.concat(chars,'',1,limit-3)..'...'
@@ -319,11 +347,60 @@ function V.ChipDuration(i,k)
     local d=c.decision and c.decision.source and c.decision or c.possibilities
     return d and d.source and U.Duration(d.duration) or ''
 end
+function V.ChipSourceTip(i,k)
+    local chip=V.Chip(i,k)
+    if not chip or not chip.checked then return '' end
+    local d=chip.decision
+    return P.Text('Spell Source: ')..(d and d.source and d.source.casterName or P.Text('No available source'))
+        ..'\n'..P.Text('Choose a different source for ')..chip.name
+end
+-- Capture the click before pushing a menu: onopen needs the final anchor.
+-- The engine's live pointer avoids guessing the scrolled row's screen Y.
+function V.ListChoiceAnchor(name,index,rh,fraction,widthFraction)
+    local x,y,w,h=EEex_Menu_GetItemArea(name)
+    local item=EEex_Menu_GetItem(name)
+    local top=item and item.scrollbar and item.scrollbar.top or 0
+    local cx,cw=x+w*fraction,w*widthFraction
+    local anchor={x=cx,y=y+(index-1)*rh-top+rh,w=cw,h=rh}
+    if EEex_Menu_GetMousePos then
+        local ok,mx,my=pcall(EEex_Menu_GetMousePos)
+        if ok and type(mx)=='number' and type(my)=='number' and mx>=x and mx<=x+w and my>=y and my<=y+h then
+            -- List columns use the engine's inner width (minus scrollbar and
+            -- integer rounding), so percentage-derived X can miss the icon.
+            -- Preserve a glyph-sized hit target around the actual click.
+            anchor={x=mx-8,y=my+12,w=16,h=24,
+                trigger={x=mx-16,y=my-16,w=32,h=32}}
+        end
+    end
+    return anchor
+end
+function V.DashboardClick(column)
+    if column<=4 then return U.DashboardClick(column) end
+    if column==17 then return U.DashboardClick(11) end
+    if column<5 or column>16 then return end
+    local k=math.floor((column-5)/2)+1
+    if column%2==1 then return U.DashboardClick(k+4) end
+    local index=bbPartyRowSelection
+    local name='rxDashboard'..(V.wide and 'Wide' or '')
+    local fraction=(V.wide and .36 or .38)+(k-1)*(V.wide and .10 or .09)+(V.wide and .08 or .07)
+    local rh=V.wide and 54 or 48
+    local anchor=V.ListChoiceAnchor(name,index,rh,fraction,.02)
+    if not U.EditRecipientSource(index,k,anchor) then return end
+    V.LayoutPopup()
+end
 function V.UsesExhausted(i)
     local r=bbPartyRows[i]
     return r and not r.heading and (r.unavailable or 0)>0 or false
 end
-function V.RowDuration(i) return bbPartyRows[i] and bbPartyRows[i].heading and '' or U.RowDuration(i):gsub(' %- ','–') end
+function V.RowDuration(i)
+    if bbPartyRows[i] and bbPartyRows[i].heading then return '' end
+    local text=U.RowDuration(i):gsub(' %- ','–')
+    if not V.wide then
+        text=text:gsub('(%d+)%.0([smhd])','%1%2')
+        text=text:gsub('(%d+%.?%d*)([smhd])–(%d+%.?%d*)%2','%1–%3%2')
+    end
+    return text
+end
 function V.AfterFilter()
     local rows,seen={},{}
     for _,r in ipairs(bbPartyRows) do
@@ -351,6 +428,11 @@ function V.RowQualifier(i)
         elseif q~='' and not r.variant then
             q=row.spellType==4 and (P.Text('Innate')..' / '..s.casterName) or P.Text(row.spellType==2 and 'Priest spell' or 'Wizard spell')
         elseif self and not r.variant then q=P.Text('Self only') end
+        -- Friendly type labels must not erase the only distinction between
+        -- same-named resource rows (including two priest spells or item powers).
+        if not r.variant and row.resref and (r.qualifier or ''):find(row.resref,1,true)then
+            q=q..' / '..row.resref
+        end
     end
     if r.variant then q='' end
     return q
@@ -367,8 +449,8 @@ function V.EmptyTitle()
     return U.preset.name..' '..P.Text('has no requests yet')
 end
 function V.EmptyBody()
-    return U.IsDashboard() and P.Text('Your planned requests are unchanged. Clear search or switch to All buffs.')
-        or P.Text('Pick buffs and recipients on the Buffs tab.')
+    return U.IsDashboard() and P.Text('Your planned requests are unchanged. Clear the search to see more buffs.')
+        or P.Text('Pick buffs and recipients on the Party Buffs tab.')
 end
 function V.EmptyActionText() return P.Text(not U.IsDashboard() and 'Go to Buffs' or bbPartyQuery~='' and 'Clear search' or 'All buffs') end
 function V.EmptyAction()
@@ -388,7 +470,9 @@ function V.IsAuto(i) return bbPartyRequests[i] and not bbPartyRequests[i].reques
 function V.RequestError(i) return bbPartyRequests[i] and bbPartyRequests[i].unavailable end
 function V.CasterName(i)
     local r=bbPartyRequests[i];if not r then return '' end
-    local d=U.plan.decisions[i];local a=U.snapshot.actors[r.request.source]
+    local d=U.plan.decisions[i]
+    local a=U.snapshot.casterActors and U.snapshot.casterActors[r.request.source]
+        or U.snapshot.actors[r.request.source]
     return r.request.source and (a and a.name or P.Text('Pinned caster unavailable')) or d.source and d.source.casterName or P.Text('No source')
 end
 function V.SummaryText(i)
@@ -426,26 +510,21 @@ function V.OrderClick(column)
 end
 function V.OpenCaster(index,listName,column,rowIndex)
     local row=bbPartyRequests[index];if not row then return end
-    U.request=row.request;U.choiceName=row.name;U.choiceRequest,U.choicePreset=row.request,U.preset
-    U.OpenChoices('caster')
     local summary=listName=='bpSummary';local name=summary and 'rxSummaryList' or 'rxOrderList'
     if V.wide then name=name..'Wide' end
-    local x,y,w=EEex_Menu_GetItemArea(name);local item=EEex_Menu_GetItem(name)
-    local top=item and item.scrollbar and item.scrollbar.top or 0
     local rh=summary and (V.wide and 42 or 34) or (V.wide and 50 or 46)
     local fraction=summary and (V.wide and .47 or .43) or (V.wide and .47 or .49)
-    U.choiceAnchor={x=x+w*fraction,y=y+((rowIndex or index)-1)*rh-top+rh,w=summary and 250 or 232,h=rh}
+    local anchor=V.ListChoiceAnchor(name,rowIndex or index,rh,fraction,.22)
+    if V.popup=='menu' and U.choiceMode=='caster' and U.choiceRequest==row.request then return V.ClosePopup() end
+    U.request=row.request;U.choiceName=row.name;U.choiceRequest,U.choicePreset=row.request,U.preset
+    U.OpenChoices('caster',nil,nil,anchor)
     if V.popup then V.LayoutPopup() else U.PopupLayout(false) end
 end
 function V.LayoutContent()
     local a=V.Area;local wide=V.wide;local width=V.w-156
-    local fx=60;local fw=wide and 120 or 98;local mw=wide and 150 or 124
-    for i=0,6 do
-        local w=i==0 and fw or mw;a('rxRecipient'..i,fx,88,w,32)
-        if i>0 then a('rxRecipientPortrait'..i,fx+6,94,14,21);a('rxRecipient'..i..'Caption',fx+24,88,w-28,32) end
-        fx=fx+w+4
-    end
     local sw=wide and 360 or 268;local sx=V.w-60-sw
+    if U.IsDashboard() then a('rxFeedback',68,86,sx-84,36)
+    else a('rxFeedback',60,V.h-47,V.w-120,28) end
     a('rxSearchPlate',sx,88,sw,32);a('rxSearch',sx+30,90,sw-60,28)
     a('rxSearchHint',sx+30,90,sw-60,28);a('rxSearchClear',sx+sw-28,92,24,24)
     local widths=wide and {3,22,4,7,10,10,10,10,10,10,4} or {4,20,5,9,9,9,9,9,9,9,8}

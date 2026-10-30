@@ -75,17 +75,19 @@ Left-click the persistent gear to edit. Right-click it to choose a named preset 
 | Automatic sources | Prefer better duration/caster level while respecting legality, pinned choices and scarce resources. |
 | Shared availability | Reserve prepared uses, spontaneous spell-level slots, variant parent uses and physical item charges. |
 | Source details | Retain every source's caster level, duration, item identity and restrictions. |
-| Recipient interface | Native icons and portraits, name search, sortable fields, inline Clear and readable recipient coverage. |
+| Recipient interface | Party Buffs → Order → Summary; native icons and portraits, name search, sortable fields and inline Clear. Character filter tabs are retired. |
+| Source editing | Each selected recipient has a corner gear. A click-anchored menu changes only that recipient's source; a larger Spell Source message names the assigned caster. |
 | Stable browsing | Values update during edits; rows do not jump merely because an assignment changes a duration. |
 | Resource exhaustion | Eligible portraits stay visible. A fully reserved 0/1 row is valid; only unavailable planned casts warn. Those casts are skipped and counted in the message log while the rest run. |
 | Variants | Individual subspell rows; different people can request different schools while sharing parent uses. |
 | Catalog controls | Conservative discovery plus Add, Hide and Restore for exceptions. |
-| Presets | Create, rename, confirmed deletion, legacy import, and data-only export/import. |
+| Presets | Create, rename, confirmed deletion and data-only export/import. |
+| Active buffs | Session-wide Skip active, Refresh Low (under five minutes) or Force All; permanent/unknown lifetimes stay protected unless forced. |
 | Completed rests | Independently selected After Rest preset with safe-world checks. |
 | Casting speed | Native casting at 2x by default; 4x and Normal selectable. |
 | Intelligent ordering | Duration/casting-time heuristic plus targeted-buff-before-invisibility constraints. |
-| Item sharing | Guarded borrowing and return of supported unique daily multi-charge backpack items. |
-| Summoned casters | Allied summons and clones contribute sources; party members remain the recipients. |
+| Item sharing | Guarded borrowing and return of supported unique daily rechargeable backpack gear, including one-use items. Every alias shares the same physical charges. |
+| Summoned casters | Check summon/clone origin and reject proven NPC ownership; preserve eligible allies with temporarily unresolved links. Party members remain the recipients. |
 | Themes | Auto, SoD, IWD, BG1 and BG2, with private bundled art and native-font fallback. |
 | Game shortcut | Direct gear-button preset picker. Numbered BuffBot innate shortcuts are retired. |
 
@@ -99,9 +101,9 @@ Left-click the persistent gear to edit. Right-click it to choose a named preset 
 
 `source = nil` requests automatic assignment. Saved character identity uses stable character keys rather than portrait position alone; execution rechecks live object identity.
 
-The allocator matches requests to concrete sources. It can move an earlier automatic assignment when doing so frees the only legal source for another request. Pinned casters, self-only targeting, shared pools and item restrictions remain constraints. Before casting, a fresh snapshot rejects an incomplete plan; individual actions continue to revalidate during execution.
+The allocator matches requests to concrete sources. It can move an earlier automatic assignment when doing so frees the only legal source for another request. Pinned casters, self-only targeting, shared pools and item restrictions remain constraints. Before casting, a fresh snapshot skips unavailable requests and counts them in the message log; available actions continue to revalidate during execution.
 
-The party plan saves separately through the `BuffBotParty` marshal handler. The original character configuration, Caster editor and explicit import path remain available. Redux does not replace all upstream persistence or promise that every original fine-control setting has a new recipient-first equivalent.
+The party plan saves separately through the `BuffBotParty` marshal handler. Historical character configuration remains readable internally for compatibility, but the original caster editor and its import controls are no longer offered. Redux is an independent alternative and does not promise a replacement for every upstream fine-control setting.
 
 ### Strongest case for Redux
 
@@ -115,7 +117,7 @@ Native accelerated casting has a straightforward timing model: the engine perfor
 - Automatic caster assignment can change when availability or party composition changes.
 - Native acceleration speeds the surrounding world too; it is not an isolated preparation timeline.
 - Fast-forward still makes the engine perform its normal work. High multipliers can become performance-limited.
-- The original Caster editor remains more direct for repeats, locks, target unlocking and converted 5E workflows.
+- Original BuffBot remains more direct for repeats, locks, target unlocking and converted 5E workflows; Redux deliberately retires that editor.
 - Native inventory bridges are restricted to validated executable signatures. Unsupported engines do not receive unsafe sharing behavior.
 - Testing is strongest for single-player EET plus stock BG2EE/EEex presentation. Full multiplayer, IWDEE and arbitrary mod-stack parity are not established.
 
@@ -171,7 +173,7 @@ Independent casters run concurrently, each retaining the saved order within its 
 
 The earlier Balanced experiment tried to infer normal preparation ages and adjust newly delivered effects afterward. It required attribution, graph inspection and delayed observation. That module, effect hooks, observer polling and duration writes were removed because native time gives simpler, more consistent semantics.
 
-The original Caster editor still retains its upstream Quick Cast modes and invisible helpers for compatibility. Those are separate from the current recipient-plan casting path.
+Historical Quick Cast helpers and compatibility APIs remain internal; they are not offered by the Redux planner. The player-facing legacy editor has been retired.
 
 ### Smart order and invisibility
 
@@ -179,13 +181,13 @@ Long first sorts known durations descending, placing permanent buffs first. Smar
 
 Incoming targeted buffs precede invisibility on the same recipient. Self and party casts are exempt. Resource inspection recognizes invisibility through supported variants, items, child spells and external effects. A recipient-specific execution wait prevents a faster caster from making the target invisible before an earlier incoming buff finishes; it does not serialize unrelated casters.
 
-Sorting does not spend resources or change browser sort order. Manual movement and explicit caster choices remain available. The small timing estimate used for ordering is read-only and never alters effects.
+Sorting does not spend resources or change browser sort order. Manual movement and explicit caster choices remain available. A shared read-only timing model now also controls Smart dispatch: shorter caster sequences intentionally start later so their final buffs finish closer to the longer sequences. Long First and Custom start independent casters immediately except for actual dependencies. Native completions, skips, summon binding and changed speed/aura update pending timing. No buff expiry is rewritten.
 
 ### Purposeful item sharing
 
 `BfBotShr.lua` exposes eligible unique loose daily rechargeable items as borrower-owned sources, sharing one physical charge pool. Native inventory usability checks determine whether the borrower can actually wear the item.
 
-The initial scope is identified, nonstackable daily powers with at least two maximum charges, held in a backpack. The loan transfers the real item, activates it through the native inventory/equipment path, restores equipment, returns it to its owner and restores its backpack position when safe.
+The scope is identified, nonstackable daily powers with one or more maximum charges, held in a backpack. This includes one-use Vhailor's Helm. The loan transfers the real item, activates it through the native inventory/equipment path, restores equipment, returns it to its owner and restores its backpack position when safe. Only the owner and borrower wait for custody; independent casters continue.
 
 A custody journal is saved before transfer. Stop, combat and load recovery return the item when the recorded state is safe. Curses/undroppable flags, duplicate copies, full backpacks, incompatible areas and unsafe engine signatures are refused. Occupied slots or missing actors can pause automatic recovery; the journal remains. Redux never manufactures a replacement item.
 
@@ -195,7 +197,11 @@ A custody journal is saved before transfer. Stop, combat and load recovery retur
 
 Allied summons and clones contribute legal sources and independent resource pools to the party planner. They are not added as buff recipients. Clone preferences use owner/type identity where supported; absent pinned sources remain unavailable. Project Image prevents allocation that would improperly use its locked owner's casting.
 
-Original BuffBot already supported summons. Redux integrates that capability into recipient requests and shared reservations. Summon equipment loans/swaps remain unsupported.
+Original BuffBot already supported live summons. Redux additionally predicts future spell sources once their creation is included in a plan. Simulacrum uses native reduction/slot rules; Project Image preserves spent resources and follows its owner's work; a borrowed Vhailor's Helm uses the wearer's profile. Fixed caster summons are derived from installed creature resources, including supported external-effect wrappers. No preview creature or first-use learning cast is required.
+
+Stable creator/owner/type identities survive saving and export. Creation must precede dependent spells in every mode. At runtime the new creature must match verified native ownership and type; its real spells/uses replace estimates. Missing creation, spawn or spell skips affected work without stopping independent lanes. Live/planned aliases cannot duplicate the same budget; Project Image accounts for uses its owner spends before creation. Summon self-only spells remain excluded because recipients are PCs.
+
+Planetar testing exposed native NPC scripts replacing the queued completion callback. Redux holds the summon AI's native interruption flag only while its planned lane is active, then restores it on completion or Stop. Scripts and spell effects are unchanged. Script-added powers cannot always be predicted before spawn; actual reconciliation remains authoritative. Summon equipment loans/swaps remain unsupported.
 
 ### Presets, completed rests and direct shortcuts
 
@@ -205,7 +211,13 @@ The persistent gear opens the editor on left-click and a named preset picker on 
 
 Numbered BuffBot preset innates, their recipient settings, grants, recharge callback, title updates and dispatch path are removed. Old characters lose only exact `BFBT[0-5][1-8]` shortcut entries through native opcode 172, including spent/duplicate entries. Their real spell/kit innates and saved presets remain. A saved obsolete shortcut action cannot dispatch a plan.
 
-`BfBotInn.lua` remains as a small compatibility module for upgrade cleanup and the legacy editor's two invisible helper resources; it creates no preset abilities. The installer retains its eight legacy label references for install/language rollback, but runtime no longer reads them.
+`BfBotInn.lua` remains a compatibility module for upgrade cleanup and historical helper resources; it creates no preset abilities. The installer no longer resolves innate labels or writes `bfbot_strrefs.txt`. Runtime catalogs work without TLK modifications; old reference files are unused.
+
+### Independent Redux maintenance
+
+Redux selectively adopts upstream ownership validation and read-only remaining-effect checks while keeping its recipient dashboard, wake-up plans, Smart/Custom order, purposeful sharing and partial-plan execution. Fast-forward recovery retains ownership when a timer read or restoration fails, retries cleanup, and no longer ends a healthy paused run merely because two minutes of wall time passed. Existing speed/render limits and the audit remain.
+
+The installer also accepts IWD:EE experimentally. IWD:EE has not been tested, and its native item-sharing bridges are not assumed compatible with BG2:EE signatures.
 
 ## 4. Verification and practical limits
 

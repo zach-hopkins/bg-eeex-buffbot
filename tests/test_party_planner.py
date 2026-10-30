@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def lua():
     runtime = LuaRuntime(unpack_returned_tuples=True)
     runtime.execute("BfBot = { Persist = {} }")
+    runtime.execute((ROOT / 'buffbot/BfBotTim.lua').read_text(encoding='utf-8'))
     runtime.execute((ROOT / "buffbot/BfBotPln.lua").read_text(encoding="utf-8"))
     runtime.execute(
         """
@@ -51,6 +52,15 @@ def test_earlier_recipient_keeps_longer_source_when_both_can_be_satisfied(lua):
         """
     )
     assert facts == ("A", "B", 1800, 0, 1)
+
+def test_spontaneous_pool_uses_actual_book_level_for_modded_spells(lua):
+    assert lua.execute('''
+      local pool=P.SpellPool({key='SORCERER',class=19},
+        {kind='spl',resref='MOVED',spellType=1,level=3,bookType=1,bookLevel=6})
+      local innate=P.SpellPool({key='SORCERER',class=19},
+        {kind='spl',resref='INNATE',spellType=1,level=3,bookType=4,bookLevel=1})
+      return pool=='SORCERER:level:1:6'and innate=='SORCERER:spell:INNATE'
+    ''')
 
 
 def test_augmenting_assignment_saves_a_source_needed_by_a_self_only_request(lua):
@@ -153,7 +163,7 @@ def test_spell_pool_keys_distinguish_prepared_and_spontaneous_sources(lua):
         """
     )
     assert facts == ("A:level:1:2", "A:spell:BLUR", "B:level:2:2", None,
-                     "5E sources require the caster editor")
+                     "5E spell sources are not supported")
 
 
 def test_snapshot_uses_concrete_item_counters_and_conservative_shared_spell_counts(lua):

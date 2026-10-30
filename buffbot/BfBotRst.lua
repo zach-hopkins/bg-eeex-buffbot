@@ -127,9 +127,10 @@ function R.Tick()
     local preset = state.presets[pending.preset]
     if not preset or #preset.requests == 0 then return false end
     BfBot.Scan.InvalidateAll()
-    local snapshot=BfBot.Plan.Snapshot()
+    local snapshot=BfBot.Plan.Snapshot(preset)
+    BfBot.Plan.EnsureDependencies(snapshot,preset)
     BfBot.Plan.ApplyOrder(snapshot,preset,BfBot.Plan.EstimateCast)
-    local queue,plan = BfBot.Plan.BuildQueue(snapshot,preset.requests)
+    local queue,plan = BfBot.Plan.BuildQueue(snapshot,preset.requests,preset.orderMode)
     BfBot.Plan.ReportSkipped(plan)
     if not queue then R.Notify('Rest plan skipped: no available casts'); return false end
     local ok = BfBot.Exec.Start(queue,state.fast==1 and 4 or 0,nil)

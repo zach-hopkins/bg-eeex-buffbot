@@ -2,12 +2,14 @@
 
 2026-10-20. Development beta based on upstream v1.10.1.
 
-The latest build also adds preset deletion, data-only plan import/export,
-concurrent mixed-execution Balanced Quick Cast, smart-order controls and unique
-daily-item sharing. The
-[feature guide](../plan-management-and-casting-beta.md) records native evidence
-and beta limits. These new options/dialogs await user visual review; the gallery
-continues to show the earlier visual-design checkpoints.
+This page retains the original redesign checkpoints and later UI fixes.
+The current beta uses native fast-forward casting; Balanced Quick Cast is
+retired. The [feature guide](../plan-management-and-casting-beta.md) describes
+the current planner, predicted summon sources, Smart start timing and item
+sharing. Native beta.5 captures and execution evidence are in
+[`evidence/2026-10-30`](evidence/2026-10-30/). The older gallery remains useful
+for the original design comparisons; its historical feature captions do not
+describe the current runtime.
 
 Open [the native screenshot gallery](index.html). The gallery includes the staged
 checkpoints, final SoD and BG1 pages and popups, IWD/BG2 skins, wide pages, empty

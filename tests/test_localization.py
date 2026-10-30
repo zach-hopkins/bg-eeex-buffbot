@@ -948,11 +948,11 @@ def test_deploy_verifies_and_copies_runtime_localization_module():
     assert "preserving existing WeiDU-selected runtime catalog" in source
     assert "English fallback" in source
     assert "setup.tra" not in source
-    assert 'PATCH_TLK_SCRIPT="$SCRIPT_DIR/patch_tlk.py"' in source
-    assert '[ ! -f "$PATCH_TLK_SCRIPT" ]' in source
+    assert 'patch_tlk.py' not in source
+    assert 'bfbot_strrefs.txt' not in source
 
 
-def test_installer_localization_contract_copies_selected_catalog_and_resolves_only_innates():
+def test_installer_localization_copies_selected_catalog_without_innate_tlk_writes():
     source = TP2_PATH.read_text(encoding="utf-8")
     language_pos = source.index("LANGUAGE")
     helper_label_pos = source.index("LABEL ~BuffBot-LuaJIT~")
@@ -980,7 +980,7 @@ def test_installer_localization_contract_copies_selected_catalog_and_resolves_on
     assert source.count("@113") == 1
     assert "OUTER_SPRINT bfbot_selected_language @113" in source
     resolved_ids = re.findall(r"RESOLVE_STR_REF\(@(\d+)\)", source)
-    assert resolved_ids == [str(catalog_id) for catalog_id in range(200, 208)]
+    assert resolved_ids == []
     selected_copy = re.search(
         r"COPY\s+~buffbot/lang/%bfbot_selected_language%/setup\.tra~\s+"
         r"~override/bfbot_l10n\.tra~",
@@ -1044,9 +1044,9 @@ def test_current_facing_localization_sections_state_file_and_tlk_ownership():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     languages = readme.split("## Languages", 1)[1].split("## Installation", 1)[0]
     assert "`override/bfbot_l10n.tra`" in languages
-    assert "no BuffBot-owned UI string is fetched from the game TLK" in languages
-    assert "installer still keeps `bfbot_strrefs.txt`" in languages
-    assert "Redux no longer grants those shortcuts" in languages
+    assert "fetches none of its own strings from the game TLK" in languages
+    assert "adds none to it" in languages
+    assert "string-reference installation are retired" in languages
 
     changelog = CHANGELOG_PATH.read_text(encoding="utf-8")
     localization_release = changelog.split("\n## v1.8.0-alpha", 1)[1].split(
@@ -1273,18 +1273,6 @@ def test_menu_has_no_static_alphabetic_player_labels_or_legacy_markers():
     assert not re.search(r"(?<![A-Za-z0-9_])@\d+", source)
 
 
-def test_menu_localization_does_not_change_actions_layout_or_list_structure():
-    # Preserve the original caster editor; the new party panel has its own tests.
-    source = MENU_PATH.read_text(encoding="utf-8").split("-- Recipient-first party planner", 1)[0].rstrip() + "\n"
-    normalized = "\n".join(
-        line
-        for line in source.splitlines()
-        if not re.match(r"^\s*(?:text|tooltip)\b", line)
-    ) + "\n"
-    # Includes zero-area deferred 5E and completed-rest polling labels.
-    assert hashlib.sha256(normalized.encode("utf-8")).hexdigest() == (
-        "dacc464f33d66ffb9b8b5740fdd62be120a8b83cd3a1c4e58eb4729a96563ed0"
-    )
 
 
 def _menu_block(source: str, name: str) -> str:
@@ -1296,43 +1284,8 @@ def _menu_block(source: str, name: str) -> str:
     return source[start : end if end >= 0 else len(source)]
 
 
-def test_spell_picker_name_column_keeps_dynamic_color_binding():
-    picker = _menu_block(
-        MENU_PATH.read_text(encoding="utf-8"), "BUFFBOT_SPELLPICKER"
-    )
-    name_expression = (
-        'text lua "buffbot_pickerSpells[rowNumber] and '
-        'buffbot_pickerSpells[rowNumber].name or \'\'"'
-    )
-    name_pos = picker.index(name_expression)
-    label_end = picker.index("\n\t\t\t}", name_pos)
-    name_label = picker[name_pos:label_end]
-
-    assert (
-        'text color lua "BfBot.UI._PickerNameColor(rowNumber)"'
-        in name_label
-    )
 
 
-def test_spell_picker_count_expression_is_nil_safe_for_header_rows():
-    picker = _menu_block(
-        MENU_PATH.read_text(encoding="utf-8"), "BUFFBOT_SPELLPICKER"
-    )
-    count_expressions = re.findall(
-        r'(?m)^\s*text lua "([^"\n]*buffbot_pickerSpells\[rowNumber\]'
-        r'\.count[^"\n]*)"\s*$',
-        picker,
-    )
-    assert len(count_expressions) == 1
-
-    runtime = LuaRuntime(unpack_returned_tuples=True)
-    runtime.execute(
-        "buffbot_pickerSpells = { { isHeader = 1 } }; rowNumber = 1"
-    )
-    assert runtime.eval(count_expressions[0]) == ""
-
-    runtime.execute("buffbot_pickerSpells[1] = { count = 3 }")
-    assert runtime.eval(count_expressions[0]) == "x3"
 
 
 def test_menu_lua_text_tooltip_action_and_enabled_chunks_compile_under_luajit():

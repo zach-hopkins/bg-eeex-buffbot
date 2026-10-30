@@ -803,67 +803,10 @@ def _assert_horizontal_group_is_valid(
         assert prior_end <= next_start, (prior_name, next_name)
 
 
-def test_spell_list_columns_and_cell_actions_match_the_repeat_design() -> None:
-    block = _spell_list_block()
-    widths = [int(value) for value in re.findall(r"\bwidth\s+(\d+)", block)]
-    actions = re.findall(r"\baction\s+\"([^\"]+)\"", block)
-
-    assert widths == [8, 8, 26, 10, 10, 8, 24, 6]
-    assert sum(widths) == 100
-    assert "BfBot.UI._RepeatRowText(rowNumber)" in block
-    assert "BfBot.UI._RepeatColor(rowNumber)" in block
-    assert len(actions) == 1
-    action = actions[0]
-    assert "rowNumber" not in action
-    assert action == "BfBot.UI._OnSpellRowAction(cellNumber)"
 
 
-def test_repeat_footer_binding_is_selection_only_and_supports_both_directions() -> None:
-    block = _named_item_block("bbRepeat")
-
-    assert re.search(
-        r"\benabled\s+['\"]BfBot\.UI\._HasSelection\(\)['\"]", block
-    )
-    assert re.search(
-        r"\baction\s+['\"]BfBot\.UI\.StepSelectedRepeat\(1\)['\"]", block
-    )
-    assert re.search(
-        r"\bactionAlt\s+['\"]BfBot\.UI\.StepSelectedRepeat\(-1\)['\"]", block
-    )
-    assert re.search(
-        r"\btext\s+lua\s+['\"]BfBot\.UI\._RepeatButtonText\(\)['\"]", block
-    )
-    assert re.search(
-        r"\btooltip\s+lua\s+['\"]BfBot\.UI\._RepeatTooltip\(\)['\"]", block
-    )
-    assert all(word not in block for word in ("castable", "count", ".on"))
-    assert _static_area("bbRepeat")[2:] == (90, 28)
 
 
-def test_static_minimum_layout_keeps_all_footer_controls_in_bounds() -> None:
-    groups = [
-        ["bbAdd", "bbRmv", "bbRepeat", "bbExp", "bbImp"],
-        ["bbTog", "bbTgt", "bbUp", "bbDn", "bbSort", "bbDel"],
-        ["bbVTog", "bbVTgt", "bbVVar", "bbVUp", "bbVDn", "bbVSort", "bbVDel"],
-        ["bbCast", "bbCastChar", "bbStop", "bbQC", "bbClose"],
-    ]
-    areas = {name: _static_area(name) for group in groups for name in group}
-
-    for group in groups:
-        _assert_horizontal_group_is_valid(areas, group, 350, 870)
-
-    list_match = re.search(
-        r"\barea\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+"
-        r"name\s+\"bbList\"",
-        _spell_list_block(),
-    )
-    assert list_match
-    list_x, list_y, list_w, list_h = map(int, list_match.groups())
-    first_footer_y = areas["bbAdd"][1]
-    assert 350 <= list_x and list_x + list_w <= 870
-    assert list_y >= 50 and list_y + list_h <= first_footer_y
-    for name, (_, y, _, height) in areas.items():
-        assert 50 <= y and y + height <= 560, name
 
 
 def test_dynamic_minimum_layout_keeps_list_and_all_footer_rows_valid(

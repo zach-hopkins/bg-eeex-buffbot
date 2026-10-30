@@ -10,6 +10,7 @@ ROOT=Path(__file__).resolve().parents[1]
 def lua():
     runtime=LuaRuntime(unpack_returned_tuples=True)
     runtime.execute("jit.off();BfBot={Persist={}}")
+    runtime.execute((ROOT / 'buffbot/BfBotTim.lua').read_text(encoding='utf-8'))
     runtime.execute((ROOT/'buffbot/BfBotPln.lua').read_text(encoding='utf-8'))
     runtime.execute("""
         P=BfBot.Plan
@@ -52,6 +53,24 @@ def test_other_categories_retain_the_existing_classifier_decision(lua,category):
 
 def test_item_graph_discovery_policy_is_unchanged(lua):
     assert lua.execute("return P.IsAutomaticBuff({kind='itm',class={isBuff=true,msectype=11}})")
+
+def test_installed_secondary_types_hide_modded_petrification_and_slow(lua):
+    assert lua.execute('''
+      local lines={'2DA V1.0','0','RES_REF'}
+      for i=0,18 do lines[#lines+1]='TYPE'..i..' 0'end
+      lines[#lines+1]='k1#Petrify 0';lines[#lines+1]='ProtectionFromPetrification 0'
+      lines[#lines+1]='k1#Slow 0'
+      BfBot.Scan.ReadTextResource=function()return table.concat(lines,string.char(10))end
+      local function row(category)return {kind='spl',class={isBuff=true,msectype=category}}end
+      return not P.IsAutomaticBuff(row(19))and P.IsAutomaticBuff(row(20))and not P.IsAutomaticBuff(row(21))
+    ''')
+
+def test_activation_deactivation_stances_stay_out_of_automatic_catalog(lua):
+    assert lua.execute('''
+      local row={kind='spl',class={isBuff=true,isToggle=true,isSelfOnly=true}}
+      assert(not P.IsAutomaticBuff(row));row.class.overridden=true
+      return P.IsAutomaticBuff(row)
+    ''')
 
 
 @pytest.mark.parametrize('category',[11,35])
@@ -136,7 +155,8 @@ def test_item_selection_dialogues_do_not_seed_automatic_buff_browser(lua):
     ''')
 
 
-@pytest.mark.parametrize('res',['C0FIG02','C0FIG02A','C0FIG02B','C0FIG02C'])
+@pytest.mark.parametrize('res',['C0FIG02','C0FIG02A','C0FIG02B','C0FIG02C',
+                              'C0DWD02','C0DWD02A','C0DWD02B','C0DWD02C'])
 def test_expertise_stance_is_manual_only(lua,res):
  lua.globals().res=res
  assert lua.execute("return not P.IsAutomaticBuff({resref=res,kind='spl',class={isBuff=true,isSelfOnly=true}})")

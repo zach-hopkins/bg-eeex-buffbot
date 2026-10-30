@@ -157,13 +157,22 @@ def test_daily_gear_requires_actual_engine_permission(eligible):
     ''')
 
 @pytest.mark.parametrize('change',[
-    'maxCharges=1','depletion=1','stack=2','flags=16','flags=0','actors[0].items[22].m_flags=9',
+    'maxCharges=0','depletion=1','stack=2','flags=16','flags=0','actors[0].items[22].m_flags=9',
     'source.itemSlot=3','recipient.controlled=false','recipient.ambiguous=true',
     "actors[1].m_pArea={ptr=99}",'for n=18,33 do actors[1].items[n]=item("OTHER",1)end',
 ])
 def test_unsafe_or_consumable_sources_never_become_borrow_candidates(eligible,change):
     eligible.execute(change)
     assert eligible.eval('not BfBot.Share.CanBorrow(source,recipient)')
+
+
+def test_one_use_daily_gear_can_be_lent_but_still_needs_engine_permission(eligible):
+    assert eligible.execute('''
+      maxCharges=1;actors[0].items[22].m_useCount1=1
+      assert(BfBot.Share.CanBorrow(source,recipient))
+      BfBot.Scan._NativeCanWearItem=function()return false end
+      return not BfBot.Share.CanBorrow(source,recipient)
+    ''')
 
 
 

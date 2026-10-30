@@ -18,7 +18,9 @@ def hud():
   Infinity_SetOffset=function(n,x,y)offsets[n]={x,y}end
   EEex_Menu_Find=function()return nil end
   EEex_Menu_GetArea=function()return -1300,602,3904,118 end
-  BfBot.Plan={ReportSkipped=function()end,ApplyOrder=function()end,GetState=function()return state end,Snapshot=function()return{}end,
+  dependencies=0
+  BfBot.Plan={EnsureDependencies=function()dependencies=dependencies+1 end,
+   ReportSkipped=function()end,ApplyOrder=function()end,GetState=function()return state end,Snapshot=function()return{}end,
    BuildQueue=function(s,requests)if missing then return nil end;return requests end}
   BfBot.Exec={GetState=function()return busy and 'running' or 'idle'end,
    Start=function(q,mode,p)starts[#starts+1]={queue=q,mode=mode};return true end}
@@ -44,7 +46,7 @@ def test_right_click_toggles_and_direct_cast_uses_stable_preset_id(hud):
  BfBot.UI._ToggleQuickMenu();assert(BfBot.UI._QuickPresetName(2)=='Travel')
  BfBot.UI._CastQuickPreset(2)
  return not stack.BUFFBOT_QUICK_PRESETS and #starts==1 and starts[1].mode==4
-  and starts[1].queue==state.presets[5].requests
+  and starts[1].queue==state.presets[5].requests and dependencies==1
  ''')
 
 

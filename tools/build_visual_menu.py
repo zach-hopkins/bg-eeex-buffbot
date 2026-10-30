@@ -4,7 +4,7 @@ import argparse
 ROOT=Path(__file__).resolve().parents[1]
 V='BfBot.Visual';U='BfBot.PartyUI';P='BfBot.Plan'
 lines=[]
-POINTS={'text':14,'textwide':15,'chipwide':14,'muted':12,'small':12,'header':12,'tab':15,'button':13,'display':14,'title':15,'error':12}
+POINTS={'text':14,'textwide':15,'chipwide':14,'muted':12,'small':12,'header':12,'tab':15,'button':13,'display':14,'title':15,'error':12,'feedback':16}
 ROLES={'muted':'text.muted','header':'text.groupLabel','tab':'text.tabActive','button':'text.button','display':'text.title','title':'text.title'}
 ROWHEIGHT=44
 ROWERROR=False
@@ -14,6 +14,7 @@ def widget(kind,name,props=(),area='0 0 100 30'):
 def label(name,expr,style='text',enabled=None,extra=(),area='0 0 100 30'):
     widget('label',name,[f'text lua "{expr}"',f'text style "bvr_{style}"',f'text point {POINTS[style]}','text align left center','ignoreEvents',*([f'enabled "{enabled}"'] if enabled else []),*extra],area)
 def button(name,action,text=None,bam='RGDMBUT2',seq=None,frame='0',enabled='true',extra=(),style='button',bam_expr=None):
+    frame=f"{V}.ButtonFrame('{name}',({frame}),{2 if bam in ['RGDMBUT2','RGDSBUT2','RGDBUTS3'] else 1})"
     artwork=f'bam lua "{bam_expr}"' if bam_expr else f'bam "{bam}"'
     props=[f'enabled "{enabled}"',f'action "{action}"',artwork,f'sequence lua "{seq or V+".SkinIndex()"}"',f'frame lua "{frame}"','scaleToClip',*extra]
     widget('button',name,props)
@@ -42,10 +43,6 @@ def finish_list(name,table,var,action,enabled,rowheight):
 def buffs():
     global ROWHEIGHT
     shown=f'{U}.IsDashboard()'
-    for i in range(7):
-        enabled=shown+(f" and {U}.RecipientName({i})~=''" if i else '')
-        button('rxRecipient'+str(i),f'{U}.SetRecipient({i})',f'{U}.RecipientName({i})','RGDSBUT2',frame=f'{U}.IsRecipient({i}) and 2 or 0',enabled=enabled,style='button',extra=[f'tooltip lua "{U}.RecipientName({i})"'])
-        if i:widget('label','rxRecipientPortrait'+str(i),[f'enabled "{enabled}"',f'bitmap lua "{V}.FilterPortrait({i})"','scaleToClip','ignoreEvents'])
     widget('label','rxSearchPlate',[f'enabled "{shown}"','bam "RGDSRCH1"',f'sequence lua "{V}.SkinIndex()"','frame 0','scaleToClip','ignoreEvents'])
     label('rxSearchHint',f"{P}.Text('Search buffs...')",'muted',f"{shown} and bbPartyQuery==''")
     widget('edit','rxSearch',[f'enabled "{shown}"','var "bbPartyQuery"','action "return 1"','text style "bvr_text"','maxlines 1'])
@@ -71,28 +68,41 @@ def buffs():
             cell([warn_x,(rh-12)//2,12,12],enabled=f'{V}.UsesExhausted(rowNumber)',extra=['bam "BFBGLYPH"',f'sequence lua "{V}.Glyph(\'warning\')"','frame 0','scaleToClip',f'tooltip lua "{U}.UsesTip(rowNumber)"'])])
         column(widths[3],[cell([2,0,-1,rh],f'{V}.RowDuration(rowNumber)')])
         for k in range(1,7):
+            # A chip spans two hit-test cells. Give both halves the same plate,
+            # reserving the right edge for the source gear instead of drawing
+            # it as an unrelated control outside the recipient's border.
+            body_width=1792 if wide else 1152
+            cw=int(body_width*(widths[k+3]-2)/100)
+            gw=int(body_width*2/100)-6
             exists=f'{V}.Chip(rowNumber,{k})~=nil';checked=f'{V}.ChipChecked(rowNumber,{k})';bad=f'{V}.ChipError(rowNumber,{k})'
             labels=[cell([0,4,cw,ch],enabled=exists,extra=['fill 0 0 0 72']),cell([0,4,cw,ch],enabled=checked,extra=['fill 240 207 122 32']),cell([0,4,cw,ch],enabled=bad,extra=['fill 224 83 63 45'])]
-            for rect in [[0,4,cw,1],[0,3+ch,cw,1],[0,4,1,ch],[cw-1,4,1,ch]]:
+            for rect in [[0,4,cw,1],[0,3+ch,cw,1],[0,4,1,ch]]:
                 labels.append(cell(rect,enabled=exists,extra=['fill 255 240 210 20']))
                 labels.append(cell(rect,enabled=checked,extra=['fill 240 207 122 190']))
                 labels.append(cell(rect,enabled=bad,extra=['fill 224 83 63 230']))
             labels.append(cell([0,4,pw,ph],enabled=f'{exists} and not {V}.IsPartyRow(rowNumber)',extra=[f'bitmap lua "{U}.CellPortrait(rowNumber,{k})"',f'opacity lua "{checked} and 255 or 158"','scaleToClip']))
             if k==1:
-                for member in range(1,4):labels.append(cell([(member-1)*11,4,pw,ph],enabled=f'{V}.IsPartyRow(rowNumber)',extra=[f'bitmap lua "{U}.PartyPortrait(rowNumber,{member})"','scaleToClip']))
+                for member in range(1,4 if wide else 3):labels.append(cell([(member-1)*11,4,pw,ph],enabled=f'{V}.IsPartyRow(rowNumber)',extra=[f'bitmap lua "{U}.PartyPortrait(rowNumber,{member})"','scaleToClip']))
             chip_style='chipwide' if wide else 'small';ty=-1 if wide else -2;dy=17 if wide else 14;th=30 if wide else 28
             labels.append(cell([pw+4,ty,cw-pw-6,th],f'{V}.ChipName(rowNumber,{k})',chip_style,f'{exists} and not {V}.IsPartyRow(rowNumber)',extra=[f'tooltip lua "{V}.ChipName(rowNumber,{k},true)"']))
             labels.append(cell([pw+4,dy,cw-pw-6,th],f'{V}.ChipDuration(rowNumber,{k})',chip_style,f'{exists} and not {V}.IsPartyRow(rowNumber)'))
             if k==1:
-                party_x=pw+26
+                party_x=pw+(26 if wide else 13)
                 labels.append(cell([party_x,ty,cw-party_x-2,th],f"{P}.Text('Party')",chip_style,f'{V}.IsPartyRow(rowNumber)'))
                 labels.append(cell([party_x,dy,cw-party_x-2,th],f'{V}.ChipDuration(rowNumber,1)',chip_style,f'{V}.IsPartyRow(rowNumber)'))
             labels.append(cell([-4,0,17,17],enabled=checked,extra=[f'bam lua "\'RGDCHEC\'..{V}.SkinIndex()"','sequence 0','frame 0','scaleToClip']))
             labels.append(cell([cw-15,2,13,13],enabled=bad,extra=['bam "BFBGLYPH"',f'sequence lua "{V}.Glyph(\'warning\')"','frame 0','scaleToClip']))
-            column(widths[k+3],labels)
+            column(widths[k+3]-2,labels)
+            gear_on=f'{exists} and {checked}'
+            gear_labels=[cell([0,4,gw,ch],enabled=exists,extra=['fill 0 0 0 72']),cell([0,4,gw,ch],enabled=checked,extra=['fill 240 207 122 32']),cell([0,4,gw,ch],enabled=bad,extra=['fill 224 83 63 45'])]
+            for rect in [[0,4,gw,1],[0,3+ch,gw,1],[gw-1,4,1,ch]]:
+                for state,color in [(exists,'255 240 210 20'),(checked,'240 207 122 190'),(bad,'224 83 63 230')]:
+                    gear_labels.append(cell(rect,enabled=state,extra=['fill '+color]))
+            gear_labels.append(cell([(gw-16)//2,6,16,18],enabled=gear_on,extra=['bam "RGDXBT1"','sequence 4',f'frame lua "{V}.ChipSourceOpen(rowNumber,{k}) and 1 or 0"','scaleToClip',f'tooltip lua "{V}.ChipSourceTip(rowNumber,{k})"']))
+            column(2,gear_labels)
         clear_rect=[5,(rh-24)//2,60 if not wide else 70,24];clear_on="bbPartyRows[rowNumber] and not bbPartyRows[rowNumber].heading and bbPartyRows[rowNumber].planned>0"
         column(widths[-1],[cell(clear_rect,enabled=clear_on,extra=['bam "RGDMBUT2"',f'sequence lua "{V}.SkinIndex()"','frame 0','scaleToClip']),cell(clear_rect,f"{P}.Text('Clear')",'button',clear_on,['text align center center'])])
-        finish_list('rxDashboard'+which,'bbPartyRows','bbPartyRowSelection',f'{U}.DashboardClick(cellNumber)',f'{shown} and '+(f'{V}.wide' if wide else f'not {V}.wide'),rh)
+        finish_list('rxDashboard'+which,'bbPartyRows','bbPartyRowSelection',f'{V}.DashboardClick(cellNumber)',f'{shown} and '+(f'{V}.wide' if wide else f'not {V}.wide'),rh)
 def caster_labels(rh,fw,summary=False):
     i='bbPartySummary[rowNumber].planIndex' if summary else 'rowNumber'
     on='bbPartySummary[rowNumber] and bbPartySummary[rowNumber].request~=nil' if summary else 'bbPartyRequests[rowNumber]~=nil'
@@ -155,6 +165,7 @@ def menus():
     global ROWHEIGHT
     popup_surface('rxMenu','BUFFBOT_RX_POPMENU')
     widget('button','rxMenuTrigger',[f'action "{V}.ClosePopup()"'])
+    widget('button','rxMenuHudTrigger',[f'action "{V}.Close()"'])
     widget('label','rxMenuNotch',['bam "BFBGLYPH"',f'sequence lua "{V}.Glyph({V}.popupAbove and \'sort-desc\' or \'sort-asc\')"','frame 0','scaleToClip','ignoreEvents'])
     label('rxMenuTitle','bbPartyChoiceTitle','title',f"{U}.choiceMode=='caster'")
     label('rxMenuHint','bbPartyChoiceHint','muted',f"{U}.choiceMode=='caster'")
@@ -175,7 +186,7 @@ def dialogs():
     widget('label','rxSourceIcon',[f'enabled "not {V}.rename and {U}.choiceMode==\'sources\'"',f'icon lua "{V}.SourceIcon()"','ignoreEvents'])
     glyph('rxDialogClose','close-dialog',action=f'{V}.ClosePopup()')
     widget('label','rxDialogRule',['fill 201 163 92 80','ignoreEvents'])
-    naming=f'{V}.rename';source=f"not {V}.rename and {U}.choiceMode=='sources'";catalog=f"not {V}.rename and ({U}.choiceMode=='add' or {U}.choiceMode=='hidden' or {U}.choiceMode=='planImport' or {U}.choiceMode=='innateRecipients' or {U}.choiceMode=='casting' or {U}.choiceMode=='theme')"
+    naming=f'{V}.rename';source=f"not {V}.rename and {U}.choiceMode=='sources'";catalog=f"not {V}.rename and ({U}.choiceMode=='add' or {U}.choiceMode=='hidden' or {U}.choiceMode=='planImport' or {U}.choiceMode=='innateRecipients' or {U}.choiceMode=='casting' or {U}.choiceMode=='theme' or {U}.choiceMode=='activeBuffs')"
     deleting=f"not {V}.rename and {U}.choiceMode=='delete'"
     label('rxDeleteBody',f'{V}.DeleteDescription()','text',deleting)
     button('rxDeleteCancel',f'{V}.ClosePopup()',f"{P}.Text('Cancel')",enabled=deleting)
@@ -199,7 +210,7 @@ def dialogs():
     ROWHEIGHT=44;emit('list\n{')
     column(8,[cell([8,12,16,16],enabled=f'{V}.ChoiceCurrent(rowNumber)',extra=[f'bam lua \"\'RGDCHEC\'..{V}.SkinIndex()\"','sequence 0','frame 0','scaleToClip']),cell([2,8,24,24],extra=['icon lua "bbPartyChoices[rowNumber] and bbPartyChoices[rowNumber].icon or \'\'"'])])
     column(70,[cell([4,0,-1,44],f'{V}.ChoiceText(rowNumber)')])
-    column(22,[cell([4,8,90,28],enabled='bbPartyChoices[rowNumber]~=nil',extra=['bam "RGDMBUT2"',f'sequence lua "{V}.SkinIndex()"','frame 0','scaleToClip']),cell([4,8,90,28],f"{P}.Text({U}.choiceMode=='planImport' and 'Import' or {U}.choiceMode=='add' and 'Add' or ({U}.choiceMode=='casting' or {U}.choiceMode=='theme') and 'Select' or {U}.choiceMode=='innateRecipients' and (bbPartyChoices[rowNumber].name:sub(1,3)=='[x]' and 'Remove' or 'Add') or 'Restore')",'button',extra=['text align center center'])])
+    column(22,[cell([4,8,90,28],enabled='bbPartyChoices[rowNumber]~=nil',extra=['bam "RGDMBUT2"',f'sequence lua "{V}.SkinIndex()"','frame 0','scaleToClip']),cell([4,8,90,28],f"{P}.Text({U}.choiceMode=='planImport' and 'Import' or {U}.choiceMode=='add' and 'Add' or ({U}.choiceMode=='casting' or {U}.choiceMode=='theme' or {U}.choiceMode=='activeBuffs') and 'Select' or {U}.choiceMode=='innateRecipients' and (bbPartyChoices[rowNumber].name:sub(1,3)=='[x]' and 'Remove' or 'Add') or 'Restore')",'button',extra=['text align center center'])])
     finish_list('rxCatalogChoices','bbPartyChoices','bbPartyChoiceSelection',f'if cellNumber==3 then {U}.Choose() end',catalog,44)
     label('rxHiddenNote',f"{P}.Text('Restore brings the whole family back, including variants.')",'muted',f"not {V}.rename and {U}.choiceMode=='hidden'")
     label('rxDialogEmptyTitle',f'{V}.DialogEmptyTitle()','title',f'{V}.DialogEmpty()')
@@ -214,18 +225,19 @@ def empty_states():
 def main(stage):
     emit('-- Generated by tools/build_visual_menu.py; list clicks use cellNumber.\nmenu\n{\n name "BUFFBOT_RX"\n ignoreesc\n onopen "BfBot.Visual.OnOpen()"')
     widget('button','rxShield',[f'action "{V}.AbsorbClick()"'],'0 0 99999 99999')
+    widget('button','rxHudTrigger',[f'action "{V}.Close()"'])
     widget('button','rxDismiss',[f'action "{V}.Close()"','on escape'],'0 0 0 0')
     for i in range(1,41):
         widget('label',f'rxFrame{i}',[f'enabled "{V}.FrameVisible({i})"',f'bam lua "{V}.Frame({i})"','sequence 0','frame 0','scaleToClip','ignoreEvents'])
         if i==1:
             for skin,rgba in [(0,'6 3 3 120'),(1,'16 13 10 178'),(2,'8 8 8 150')]:widget('label','rxWell'+str(skin),[f'enabled "{V}.SkinIndex()=={skin}"','fill '+rgba,'ignoreEvents'])
     widget('label','rxTick',[f'enabled "{V}.Tick()"'],'0 0 0 0')
-    for name,view,text in [('Buffs','dashboard','Buffs'),('Summary','summary','Summary'),('Order','order','Order')]:
+    for name,view,text in [('Buffs','dashboard','Party Buffs'),('Summary','summary','Summary'),('Order','order','Order')]:
         button('rx'+name,f"{V}.ChangeView('{view}')",f"{P}.Text('{text}')",'RGDSBUT2',frame=f"{U}.view=='{view}' and 2 or 0",style='tab')
     button('rxPreset',f"{V}.ToggleChoices('presets')")
     label('rxPresetText',f'{V}.PresetText()','tab');glyph('rxPresetChevron','dropdown')
     button('rxNew',f'{U}.CreatePreset()',bam='RGDXBT1',seq='5',extra=[f'tooltip lua "{P}.Text(\'New preset\')"'])
-    button('rxOptions',f"{V}.ToggleChoices('settings')",bam='RGDXBT1',seq='4',extra=[f'tooltip lua "{P}.Text(\'Options\')"'])
+    button('rxOptions',f"{V}.ToggleChoices('settings')",bam='RGDXBT1',seq='4',frame=f"{V}.popup=='menu' and {U}.choiceMode=='settings' and 1 or 0",extra=[f'tooltip lua "{P}.Text(\'Options\')"'])
     button('rxClose',f'{V}.Close()',bam='RGDBTCLS',extra=[f'tooltip lua "{P}.Text(\'Close\')"'])
     if stage>=2:buffs()
     if stage>=3:summary()
@@ -234,7 +246,7 @@ def main(stage):
     button('rxRest',f"{V}.ToggleChoices('rest')")
     widget('label','rxRestIcon',['bam "RGDXBT1"','sequence 7','frame 0','scaleToClip','ignoreEvents'])
     label('rxRestText',f'{V}.RestText()','button');glyph('rxRestChevron','dropdown')
-    label('rxStatus','bbPartyStatus','small');label('rxFeedback','bbPartyFeedback','small')
+    label('rxStatus','bbPartyStatus','small');label('rxFeedback','bbPartyFeedback','feedback')
     button('rxAdd',f"{U}.OpenChoices('add')",f"{P}.Text('Add spell / item')",enabled=f'{U}.IsDashboard()')
     button('rxHidden',f"{U}.OpenChoices('hidden')",f"{P}.Text('Hidden')",enabled=f'{U}.IsDashboard()')
     button('rxCast',f'{U}.Cast()',f"{P}.Text('Cast')",'RGDBUTS3',enabled=f'{U}.CanCast()',style='tab')

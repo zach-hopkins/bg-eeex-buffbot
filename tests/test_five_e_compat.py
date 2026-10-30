@@ -1202,7 +1202,7 @@ def test_exec_casts_through_wrapper_and_waits_for_upstream_refresh(
 
     assert facts["afterFirst"] == (
         'SpellRES("D5Z101I",Myself)|'
-        'EEex_LuaAction("BfBot.Exec._Advance([[p0]])")'
+        'EEex_LuaAction("BfBot.Exec._Advance([[p0]],1)")'
     )
     assert facts["stepped"] == "_Advance"
     assert facts["waited"] == (
@@ -1215,7 +1215,7 @@ def test_exec_casts_through_wrapper_and_waits_for_upstream_refresh(
     assert facts["resumed2"] == "_Resume"
     assert facts["final"] == (
         'SpellRES("D5Z102I",Myself)|'
-        'EEex_LuaAction("BfBot.Exec._Advance([[p0]])")'
+        'EEex_LuaAction("BfBot.Exec._Advance([[p0]],2)")'
     )
     assert "SPWI305" not in facts["done"]
     assert facts["casts"] == 2
@@ -1240,7 +1240,7 @@ def test_exec_refresh_wait_ends_when_pool_is_exhausted(
         })
         spells.SPWI305.count = 0; spells.SPWI305.d5.available = 0
         spells.SPWI306.count = 0; spells.SPWI306.d5.available = 0
-        T_RunNextLuaAction()                          -- _Advance → wait
+        T_RunNextLuaAction()                          -- _Advance â†’ wait
         local polls = 0
         while BfBot.Exec._state == "running" and polls < 50 do
             T_Now = T_Now + 3
@@ -1281,13 +1281,13 @@ def test_exec_refresh_wait_stops_early_once_any_wrapper_is_regranted(
         })
         spells.SPWI305.count = 0; spells.SPWI305.d5.available = 0
         spells.SPWI306.count = 0; spells.SPWI306.d5.available = 0
-        T_RunNextLuaAction()                          -- _Advance → wait
+        T_RunNextLuaAction()                          -- _Advance â†’ wait
         T_Now = T_Now + 15                            -- delay elapsed
         -- Another level still has casts, so the regrant already ran:
         -- SPWI306's level is empty and waiting longer cannot help.
         T_Live = { [2] = { D5Z120I = 1 } }
         BfBot.FiveE._map.byWrapper.D5Z120I = 120
-        T_RunNextLuaAction()                          -- _Resume → skip → done
+        T_RunNextLuaAction()                          -- _Resume â†’ skip â†’ done
         return {
             state = BfBot.Exec._state,
             skips = BfBot.Exec._skipCount,
@@ -1310,12 +1310,12 @@ def test_exec_repeat_attempts_wait_between_wrapper_casts(
         T_ExecWorld(spells)
         T_Start({ { caster = 0, spell = "SPWI305", target = "self", rep = 2 } })
         spells.SPWI305.count = 0; spells.SPWI305.d5.available = 0
-        T_RunNextLuaAction()                          -- _Advance → wait
+        T_RunNextLuaAction()                          -- _Advance â†’ wait
         local waiting = T_Actions[1]
         T_Now = T_Now + 15
         T_Live = { [2] = { D5Z101I = 1 } }
         spells.SPWI305.count = 1; spells.SPWI305.d5.available = 1
-        T_RunNextLuaAction()                          -- _Resume → cast 2
+        T_RunNextLuaAction()                          -- _Resume â†’ cast 2
         return {
             waiting = waiting,
             second = T_Actions[1],
@@ -1434,7 +1434,7 @@ def test_exec_waits_out_a_refresh_that_started_before_the_run(
     )
     assert facts["cast"] == (
         'SpellRES("D5Z101I",Myself)|'
-        'EEex_LuaAction("BfBot.Exec._Advance([[p0]])")'
+        'EEex_LuaAction("BfBot.Exec._Advance([[p0]],1)")'
     )
     assert facts["casts"] == 1
     assert facts["skips"] == 0
@@ -1508,7 +1508,7 @@ def test_exec_ignores_a_resume_left_over_from_a_stopped_run(
 
     assert facts["first"] == (
         'SpellRES("SPPR101",Myself)|'
-        'EEex_LuaAction("BfBot.Exec._Advance([[p0]])")'
+        'EEex_LuaAction("BfBot.Exec._Advance([[p0]],1)")'
     )
     assert facts["after"] == facts["first"]
     assert facts["casts"] == 1
@@ -1589,8 +1589,8 @@ def test_exec_skips_an_active_buff_delivered_under_a_different_mem_resref(
             for _, id in ipairs(states) do if id == 29 then return true end end
             return false
         end
-        BfBot.Exec._HasActiveStateMarker = function(_, resref, _)
-            return resref == "SPPR101"
+        BfBot.Exec._ActiveStateMarkerRemaining = function(_, resref, _)
+            return resref == "SPPR101" and math.huge or nil
         end
         T_Start({ { caster = 0, spell = "FNP101A", target = "self" } })
         return { actions = table.concat(T_Actions, "|"),

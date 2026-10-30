@@ -61,7 +61,7 @@ local _textKeys = {
     ["Buff unavailable"] = "party.text11",
     ["Disabled"] = "party.text12",
     ["No unreserved uses"] = "party.text13",
-    ["5E sources require the caster editor"] = "party.text14",
+    ["5E spell sources are not supported"] = "party.text14",
     ["Caster class unavailable"] = "party.text15",
     ["Ambiguous character identity"] = "party.text16",
     ["Caster is dead"] = "party.text17",
@@ -87,7 +87,7 @@ local _textKeys = {
     ["Select recipients below"] = "party.text37",
     ["Maximum eight presets"] = "party.text38",
     ["Import into an empty preset"] = "party.text39",
-    ["Party planning is a single-player beta; use the caster editor"] = "party.text40",
+    ["Party planning supports single-player only"] = "party.text40",
     ["Resolve unavailable casts before casting"] = "party.text41",
     [" planned / "] = "party.text42",
     [" unavailable"] = "party.text43",
@@ -207,6 +207,9 @@ function P.BetterSource(a, b, r)
     if (a.casterLevel or 0) ~= (b.casterLevel or 0) then
         return (a.casterLevel or 0) > (b.casterLevel or 0)
     end
+    local ae=a.future~=nil or (a.casterRef and a.casterRef.kind=='summon')or false
+    local be=b.future~=nil or (b.casterRef and b.casterRef.kind=='summon')or false
+    if ae~=be then return ae end
     return a.id < b.id
 end
 function P.Assign(snapshot, requests)
@@ -278,51 +281,32 @@ end
 -- Explicit plan-order tools. These never change requests, targets or caster locks.
 -- Smart order is a bounded heuristic, scored by the worst retained lifetime
 -- fraction after per-caster aura/release simulation, then total retained fraction.
-function P.CastAges(jobs)
-    local phases,phase={},{}
-    for i,job in ipairs(jobs) do
-        if job.boundary then phases[#phases+1]=phase;phase={}
-        else phase[#phase+1]={index=i,job=job} end
+function P.CastAges(entries)
+    local jobs,phase,lastFence={},{},nil
+    local ids={};for i,e in ipairs(entries)do if e.request then ids[e.request]=i end end
+    for i,e in ipairs(entries)do
+        local j={id=i,caster=e.caster,actor=e.actor,target=e.request and e.request.target or e.target,
+            rank=e.index,release=e.release or 0,aura=e.aura,after={},
+            prerequisite=e.prerequisite,affects=e.affects,invisible=e.invisible,party=e.party,
+            ownerImage=e.ownerImage,provider=ids[e.provider]}
+        if lastFence then j.after[#j.after+1]=lastFence end
+        if e.boundary then
+            j.after=phase;j.release=0;phase={};lastFence=i
+        else phase[#phase+1]=i end
+        jobs[#jobs+1]=j
     end
-    phases[#phases+1]=phase
-    -- First find the earliest feasible finish. Do not delay a fast lane at an
-    -- intermediate fence: its aura may be needed by a later phase.
-    local finish,ready=0,{}
-    for _,entries in ipairs(phases) do
-        local phaseStart=finish
-        for _,entry in ipairs(entries) do
-            local job=entry.job
-            local start=math.max(phaseStart,ready[job.caster] or 0)
-            finish=math.max(finish,start+job.release)
-            ready[job.caster]=start+math.max(job.release,job.aura and 0 or 100)
-        end
+    local solution=BfBot.Timing.Solve(BfBot.Timing.Constrain(jobs))
+    local ages={}
+    for i,e in ipairs(entries)do
+        if not e.boundary then ages[i]=solution and solution.jobs[i].age or math.huge end
     end
-    -- Then place each cast as late as its successors allow. This implements
-    -- JIT without resetting aura at fences or extending the preparation time.
-    local deadline,nextStart,ages=finish,{},{}
-    for i=#phases,1,-1 do
-        local first=deadline
-        for j=#phases[i],1,-1 do
-            local entry=phases[i][j];local job=entry.job
-            local start=deadline-job.release
-            if nextStart[job.caster] then
-                start=math.min(start,nextStart[job.caster]-math.max(job.release,job.aura and 0 or 100))
-            end
-            ages[entry.index]=finish-start-job.release
-            nextStart[job.caster]=start;first=math.min(first,start)
-        end
-        deadline=first
-    end
-    return ages,finish
+    return ages,solution and solution.finish or math.huge
 end
 
 local function orderScore(entries)
+    -- Loans lock their physical item, not every unrelated casting lane.
     local jobs,positions={},{}
-    for i,e in ipairs(entries) do
-        if e.barrier then jobs[#jobs+1]={boundary=true} end
-        jobs[#jobs+1]=e;positions[i]=#jobs
-        if e.barrier then jobs[#jobs+1]={boundary=true} end
-    end
+    for i,e in ipairs(entries)do jobs[i]=e;positions[i]=i end
     local ages=P.CastAges(jobs);local worst,total=1,0
     for i,e in ipairs(entries) do
         if e.duration>0 then
@@ -430,17 +414,22 @@ function P.EstimateCast(source)
     local sprite=source.casterRef and BfBot.Exec._ResolveCaster(source.casterRef)
         or source.slot~=nil and EEex_Sprite_GetInPortrait(source.slot)
     local stats=sprite and EEex_Sprite_GetActiveStats(sprite)
-    local timing={release=100,aura=stats and stats.m_bAuraCleansing~=0 or false,
+    local timing={release=BfBot.Timing.AURA_TICKS,aura=stats and stats.m_bAuraCleansing~=0 or false,
         barrier=source.itemOwner~=nil}
     if not sprite then timing.barrier=true;return timing end
     local ok,barrier,prerequisite=pcall(P.OrderPrerequisite,row,sprite)
     timing.prerequisite=ok and prerequisite==true
     timing.ownerPrerequisite=row.isProjectImage==1
+    timing.affects=timing.ownerPrerequisite and source.actor or nil
     timing.barrier=timing.barrier or not ok or barrier
     if row.kind=='spl' then
         local h=EEex_Resource_Demand(row.resref,'SPL')
         local a=h and h:getAbilityForLevel(row.casterLevel or 1)
-        if a and stats then timing.release=P.CastingSegments(a.speedFactor,stats.m_nCastingType,stats.m_nMentalSpeed)*10+4 end
+        if a and stats then
+            timing.rawSegments=a.speedFactor
+            timing.release=BfBot.Timing.ReleaseTicks(
+                P.CastingSegments(a.speedFactor,stats.m_nCastingType,stats.m_nMentalSpeed))
+        end
     end
     return timing
 end
@@ -467,6 +456,7 @@ function P.SortRequests(snapshot,requests,mode,estimate)
                 duration=d.duration or 0,release=math.max(0,t.release or 64),aura=t.aura==true,
                 unavailable=not d.source,barrier=d.source and (d.source.itemOwner~=nil or t.barrier==true),
                 prerequisite=t.prerequisite==true,
+                ownerImage=t.ownerPrerequisite==true,provider=d.source and d.source.providerRequest,
                 affects=t.ownerPrerequisite and d.source.actor or r.target,
                 invisible=d.source and metadata[d.source.id..':'..(r.var or '')].invisible,
                 party=d.source and (d.source.aoe or d.source.row.isAoE==1) or r.target=='party'}
@@ -477,9 +467,9 @@ function P.SortRequests(snapshot,requests,mode,estimate)
     -- An execution fence is movable. Only proven prerequisites impose relative
     -- order: preserve casts before/after a modifier on the affected caster(s).
     -- Loans carry their own atomic transfer/use/return; helper spells add no edge.
-    local edges={}
+    local edges=P.RequiredEdges(snapshot,requests,original)
     for _,e in ipairs(initial) do
-        if e.prerequisite then
+        if e.prerequisite and not e.ownerImage then
             for _,other in ipairs(initial) do
                 if other~=e and (e.affects=='party' or other.actor==e.affects) then
                     local a,b=e.request,other.request
@@ -571,6 +561,55 @@ function P.SortRequests(snapshot,requests,mode,estimate)
     for _,d in ipairs(original.decisions) do if d.source and not available[d.request] then return requests,false end end
     local changed=false;for i,r in ipairs(sorted) do changed=changed or r~=requests[i] end
     return changed and sorted or requests,changed
+end
+
+-- Real game prerequisites apply to every order mode. No saved caster/recipient
+-- choice is changed; stable topological repair only moves dependent requests.
+function P.RequiredEdges(snapshot,requests,plan)
+    plan=plan or P.Assign(P.OrderSnapshot(snapshot),requests)
+    local edges,present={},{}
+    for _,r in ipairs(requests)do present[r]=true end
+    local function edge(a,b)
+        if a~=b and present[a]and present[b]then edges[a]=edges[a]or {};edges[a][b]=true end
+    end
+    for _,d in ipairs(plan.decisions)do if d.source then
+        local s=d.source
+        if s.providerRequest then edge(s.providerRequest,d.request)end
+        if s.row.isProjectImage==1 then
+            for _,other in ipairs(plan.decisions)do
+                if other.source and other.source.actor==s.actor then edge(other.request,d.request)end
+            end
+        end
+    end end
+    return edges
+end
+function P.OrderAllowed(snapshot,requests)
+    local positions={};for i,r in ipairs(requests)do positions[r]=i end
+    for before,targets in pairs(P.RequiredEdges(snapshot,requests))do for after in pairs(targets)do
+        if positions[before]>=positions[after]then return false,'Create the summon after the owner buffs and before its spells'end
+    end end
+    return true
+end
+function P.EnsureDependencies(snapshot,preset)
+    local list=preset.requests
+    local incoming={}
+    for a,targets in pairs(P.RequiredEdges(snapshot,list))do for b in pairs(targets)do
+        incoming[b]=incoming[b]or {};incoming[b][a]=true
+    end end
+    local result,used={},{}
+    for _=1,#list do
+        local nextRequest
+        for _,r in ipairs(list)do if not used[r]then
+            local ready=true
+            for a in pairs(incoming[r]or {})do if not used[a]then ready=false;break end end
+            if ready then nextRequest=r;break end
+        end end
+        if not nextRequest then return false,'Conflicting summon dependencies'end
+        used[nextRequest]=true;result[#result+1]=nextRequest
+    end
+    local changed=false;for i,r in ipairs(result)do changed=changed or r~=list[i]end
+    if changed then preset.requests=result end
+    return changed
 end
 
 -- Ordering reads replenished capacity. Execution always keeps the live pools.
@@ -687,11 +726,12 @@ end
 -- casters and innates spend the specific resource. 5E stays in the legacy
 -- editor until its cross-wrapper pool semantics have been verified here.
 function P.SpellPool(actor, row)
-    if row.d5 then return nil, P.Text("5E sources require the caster editor") end
+    if row.d5 then return nil, P.Text("5E spell sources are not supported") end
     if not integer(actor.class, 1, 21) then return nil, P.Text("Caster class unavailable") end
-    if (actor.class == 19 and row.spellType == 1)
-        or (actor.class == 21 and row.spellType == 2) then
-        return (actor.poolKey or actor.key) .. ":level:" .. row.spellType .. ":" .. row.level
+    local spellType,level=row.bookType or row.spellType,row.bookLevel or row.level
+    if (actor.class == 19 and spellType == 1)
+        or (actor.class == 21 and spellType == 2) then
+        return (actor.poolKey or actor.key) .. ":level:" .. spellType .. ":" .. level
     end
     return (actor.poolKey or actor.key) .. ":spell:" .. row.resref:upper()
 end
@@ -705,16 +745,44 @@ end
 -- for manual Add/import, but do not seed the recipient browser from that score
 -- alone. Explicit positive overrides and self/friendly abilities retain intent.
 -- Item discovery has its own bounded graph policy and is unchanged here.
+local hostileCategories
+function P.HostileCategory(category)
+    if not hostileCategories then
+        hostileCategories={}
+        local source=BfBot.Scan and BfBot.Scan.ReadTextResource
+            and BfBot.Scan.ReadTextResource('MSECTYPE','2DA',65536)
+        if source then
+            local lineNumber,categoryIndex=0,0
+            for line in source:gmatch('[^\r\n]+')do
+                local label=line:match('^%s*(%S+)')
+                if label and label:sub(1,2)~='//'then
+                    lineNumber=lineNumber+1
+                    if lineNumber>3 then
+                        label=label:lower()
+                        if not label:find('protect',1,true)then
+                            for _,word in ipairs({'petrif','impris','slow','statd','debuff','disabling','offensivedamage','magicattack','insect'})do
+                                if label:find(word,1,true)then hostileCategories[categoryIndex]=true;break end
+                            end
+                        end
+                        categoryIndex=categoryIndex+1
+                    end
+                end
+            end
+        end
+    end
+    return hostileCategories[category]==true
+end
 function P.IsAutomaticBuff(row)
     local c = row and row.class
     if not c or not c.isBuff or row.requiresChoice then return false end
+    if c.isToggle and not c.overridden then return false end
     -- Combat Expertise activation/deactivation is a combat stance, not a prebuff.
     -- Keep it discoverable via manual Add rather than cluttering automatic rows.
     local resource=row.resref and row.resref:upper() or ''
-    if resource=='C0FIG02' or resource=='C0FIG02A' or resource=='C0FIG02B' or resource=='C0FIG02C' then return false end
+    if resource:match('^C0FIG02[ABC]?$') or resource:match('^C0DWD02[ABC]?$') then return false end
     if row.kind=='itm' and (row.itemType==11 or row.itemType==35) and not c.overridden then return false end
     if row.kind == "itm" or c.overridden or c.isSelfOnly or c.friendlyFlag then return true end
-    return c.msectype ~= 4 and c.msectype ~= 10 and c.msectype ~= 11
+    return c.msectype ~= 4 and c.msectype ~= 10 and c.msectype ~= 11 and not P.HostileCategory(c.msectype)
 end
 -- Preserve older caster-centered radial requests when their delivery is
 -- recognized as Party. Retain the original caster, order, variants and repeats.
@@ -732,7 +800,7 @@ function P.NormalizeRadialRequests(snapshot,requests)
     end
 end
 
-function P.Snapshot()
+function P.Snapshot(preset)
     local owner = BfBot.Persist._GetProtagonist and BfBot.Persist._GetProtagonist()
     local preferences = owner and EEex_GetUDAux(owner).BBParty
     -- A saved selection is deliberate user intent, even when the automatic
@@ -810,6 +878,7 @@ function P.Snapshot()
                 and preferences.include[P.GroupKey(row)] == 1
             local summonSelf=actor.casterRef.kind=='summon' and row.isSelfOnly==1 and row.isAoE~=1
             if not summonSelf and row.class and (P.IsAutomaticBuff(row) or manual
+                or actor.slot~=nil and BfBot.Summon and BfBot.Summon.IsCreator(row)
                 or row.class.isBuff and requested[P.GroupKey(row)]) then
                 local key = P.GroupKey(row)
                 local group = snap.groups[key]
@@ -873,6 +942,8 @@ function P.Snapshot()
         end
     end
     if BfBot.Share then BfBot.Share.AddSources(snap) end
+    if BfBot.Summon then BfBot.Summon.AddSources(snap,preset or preferences
+        and preferences.presets and preferences.presets[preferences.active or 1],preferences)end
     for _,preset in pairs(preferences and preferences.presets or {})do
         P.NormalizeRadialRequests(snap,preset.requests)
     end
@@ -1000,10 +1071,10 @@ function P.ImportLegacy(snapshot, index)
     end
     return requests
 end
-function P.BuildQueue(snapshot, requests)
+function P.BuildQueue(snapshot, requests, orderMode)
     if #requests > P.MAX_REQUESTS then return nil, nil, P.Text("Plan exceeds 256 requests") end
     local plan = P.Assign(snapshot, requests)
-    local queue = {}
+    local queue,positions = {},{}
     for _, d in ipairs(plan.decisions) do
         if d.source then
             local s, r = d.source, d.request
@@ -1011,19 +1082,28 @@ function P.BuildQueue(snapshot, requests)
             queue[#queue + 1] = { caster = s.slot, spell = s.row.resref,
                 casterRef = s.casterRef,
                 target = s.selfOnly and "self" or target, var = r.var, rep = 1,
-                plannedActor = s.actor, plannedTarget = r.target, planIndex = #queue+1,
+                plannedActor = s.liveActor or s.actor, plannedTarget = r.target, planIndex = #queue+1,
+                plannedCasterName=s.casterName,spellName=s.row.name,isAoE=s.aoe,
+                future=s.future,providerRequest=s.providerRequest,
                 invisibilityTarget = P.DeliversInvisibility(s.row,r.var)
                     and ((s.aoe or s.row.isAoE==1 or r.target=="party") and "party" or r.target) or nil,
                 plannedItemSlot = s.itemSlot, itemOwner = s.itemOwner,
                 sharedItem = s.itemOwner and s.row.itemResref or nil,
+                smartTiming = orderMode=='smart' or nil,
+                timing = orderMode=='smart' and P.EstimateCast(s) or nil,
                 isProjectImage = s.row.isProjectImage }
+            positions[r]=#queue
         end
+    end
+    for _,entry in ipairs(queue)do
+        entry.providerPlanIndex=entry.providerRequest and positions[entry.providerRequest]or nil
+        entry.providerRequest=nil
     end
     if #queue == 0 then return nil, plan end
     -- Retain the executor's existing Project Image owner/ordering safeguards.
     if BfBot.Persist._ApplyPuppetLockPolicy then
         local clones = BfBot.Persist._CollectLiveCloneDescriptors()
-        for _, actor in ipairs(snapshot.casters or snapshot.order) do
+        for _, actor in ipairs(snapshot.casters or snapshot.order) do if actor.sprite then
             local entries = {}
             for _, entry in ipairs(queue) do
                 if entry.plannedActor == actor.key then entries[#entries + 1] = entry end
@@ -1031,7 +1111,7 @@ function P.BuildQueue(snapshot, requests)
             local _, skips = BfBot.Persist._ApplyPuppetLockPolicy(
                 { oid = actor.sprite.m_id, name = actor.name }, entries, clones)
             if #skips > 0 then return nil, plan, P.Text("Project Image locks a planned caster") end
-        end
+        end end
     end
     return queue, plan
 end

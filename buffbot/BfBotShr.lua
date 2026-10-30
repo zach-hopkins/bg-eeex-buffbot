@@ -38,6 +38,10 @@ local function sameArea(a,b)
     return a and b and a.m_pArea and b.m_pArea
         and EEex_UDToPtr(a.m_pArea)==EEex_UDToPtr(b.m_pArea)
 end
+local function alive(sprite)
+    return sprite and sprite.m_baseStats
+        and bit.band(sprite.m_baseStats.m_generalState or 0,0xFC0)==0
+end
 local function fingerprint(item)
     return {flags=item.m_flags,wear=item.m_wear,
         counts={item.m_useCount1,item.m_useCount2,item.m_useCount3}}
@@ -80,7 +84,7 @@ function S.CanBorrow(source,recipient)
     if not ability then return false end
     local ptr=EEex_UDToPtr(ability)
     -- Daily rechargeable charges; exclude consumables, stacks and at-will gear.
-    if EEex_ReadU16(ptr+0x22)<2 or EEex_ReadU16(ptr+0x24)~=3
+    if EEex_ReadU16(ptr+0x22)<1 or EEex_ReadU16(ptr+0x24)~=3
         or EEex_ReadU16(EEex_UDToPtr(h)+0x38)>1
         or bit.band(EEex_ReadU32(EEex_UDToPtr(h)+0x18),0x14)~=4 then return false end
     local location=locate(source.row.itemResref:upper())
@@ -190,6 +194,10 @@ function S.Tick()
     if S.lastPoll and now>=S.lastPoll and now-S.lastPoll<100 then return end
     S.lastPoll=now
     local state=BfBot.Plan.GetState();if not state then return end
+    if S.liveLoan then
+        if S.liveLoan.state==state then S.TickLoan(state,now);return end
+        S.liveLoan=nil;S.waiters=nil -- load changed; recover only its saved journal
+    end
     local run=S.run
     if run and run.state~=state then
         S.run=nil;run=nil
@@ -278,5 +286,145 @@ function S.Tick()
     else startEntry(run,entry) end
 end
 function S.Reset()
+    S.liveLoan,S.waiters=nil,nil
     S.run,S.lastPoll,S.returnSent,S.repositionSent,S.reportedRecovery,S.lastFailure=nil,nil,nil,nil,nil,nil
+end
+
+-- Recipient plans lend within the existing parallel run. Only the owner and
+-- wearer are held while native GiveItem/use/return actions need their queues.
+-- Other party members and planned summons keep their independent cast chains.
+local function resumeNativeWaiters()
+    if BfBot.Exec._state~='running'then return end
+    local waiters=S.waiters or {};S.waiters={}
+    for key,index in pairs(waiters)do
+        local c=BfBot.Exec._casters[key]
+        if c and not c.done then BfBot.Exec._ProcessCasterEntry(key,index)end
+    end
+end
+local function releaseNativeLoan()
+    S.liveLoan=nil;S.reportedRecovery=nil
+    BfBot.Scan.InvalidateAll()
+    resumeNativeWaiters()
+    if BfBot.Exec._state=='running'and BfBot.Exec._activeCasters<=0 then BfBot.Exec._Complete()end
+end
+function S.BeforeStep(key,index)
+    local loan=S.liveLoan;if not loan then return false end
+    if loan.key==key and index>loan.index and loan.phase=='using'then loan.phase='return'end
+    local c=BfBot.Exec._casters[key]
+    if not c or index>#c.queue then return false end
+    if loan.key==key and index==loan.index then return false end
+    if c.plannedActor==loan.raw.itemOwner or c.plannedActor==loan.raw.plannedActor then
+        S.waiters=S.waiters or {};S.waiters[key]=index;return true
+    end
+    return false
+end
+function S.CancelNative()
+    local loan=S.liveLoan
+    if loan then loan.cancelled=true;loan.phase='return'end
+    S.waiters={}
+end
+-- A loaded world's validated custody journal is authoritative. Drop only the
+-- old world's transient queue/loan records; recovery reads the loaded journal.
+function S.ForgetExecution()
+    S.liveLoan,S.run,S.waiters,S.lastPoll=nil,nil,{},nil
+    S.returnSent,S.repositionSent,S.reportedRecovery,S.lastFailure=nil,nil,nil,nil
+end
+function S.MaterializeLoan(key,caster,entry)
+    local raw=entry.raw
+    if raw.loanFailure then return nil,raw.loanFailure end
+    local loan=S.liveLoan
+    if loan and (loan.key~=key or loan.index~=caster.index)then
+        S.waiters=S.waiters or {};S.waiters[key]=caster.index;return nil,'wait'
+    end
+    if not loan then
+        local state=BfBot.Plan.GetState()
+        if not state or state.transfer then return nil,'item return is still pending'end
+        local owner=actor(raw.itemOwner);local borrower=actor(raw.plannedActor)
+        local location=locate(raw.sharedItem)
+        local ownerSwap=owner and BfBot.Persist.GetItemSwap(owner)
+        if not alive(owner) or not alive(borrower) or not location or location.key~=raw.itemOwner
+            or location.slot~=raw.plannedItemSlot and not ownerSwap or not sameArea(owner,borrower)
+            or not freePack(borrower)or BfBot.Scan._NativeCanWearItem(borrower,location.item)~=true then
+            return nil,'planned item is no longer safely shareable'
+        end
+        loan={key=key,index=caster.index,raw=raw,state=state,phase='request',
+            since=BfBot.Exec._GetGameTime()}
+        S.liveLoan=loan;S.waiters=S.waiters or {}
+    end
+    if loan.cancelled then return nil,loan.failed or 'item sharing cancelled'end
+    if loan.phase~='ready'then S.waiters[key]=caster.index;return nil,'wait'end
+    local location=locate(raw.sharedItem)
+    if not location or location.key~=raw.plannedActor then return nil,'borrowed item unavailable'end
+    local copy={};for k,v in pairs(raw)do copy[k]=v end
+    copy.itemOwner=nil;copy.plannedItemSlot=location.slot
+    BfBot.Scan.Invalidate(location.sprite)
+    local byCaster=BfBot.Exec._BuildQueue({copy},0)
+    local entries=byCaster and byCaster[BfBot.Exec._CasterKey(caster.ref)]
+    local result=entries and entries[1]
+    if not result then loan.phase='return';return nil,'borrowed item power unavailable'end
+    loan.phase='using';S.waiters[key]=nil
+    return result
+end
+function S.TickLoan(state,wall)
+    local loan=S.liveLoan;if not loan then return end
+    local owner=actor(loan.raw.itemOwner);local borrower=actor(loan.raw.plannedActor)
+    local location=locate(loan.raw.sharedItem)
+    local function failed(reason)
+        loan.failed=reason;loan.raw.loanFailure=reason;loan.cancelled=true;loan.phase='return'
+        fail(reason)
+    end
+    if loan.phase=='request'then
+        if loan.cancelled then releaseNativeLoan();return end
+        if owner and BfBot.Persist.GetItemSwap(owner)then return end
+        if not alive(owner) or not alive(borrower) or not location or location.key~=loan.raw.itemOwner
+            or location.slot~=loan.raw.plannedItemSlot or not sameArea(owner,borrower)then
+            failed('item or owner changed before lending');releaseNativeLoan();return
+        end
+        local now=BfBot.Exec._GetGameTime()
+        if now and loan.since and now-loan.since>300 then
+            failed('item owner remained busy');releaseNativeLoan();return
+        end
+        if not EEex_Trigger_EvalConditionalStringAsAIBase('ActionListEmpty()',owner)
+            or not EEex_Trigger_EvalConditionalStringAsAIBase('ActionListEmpty()',borrower)then return end
+        local record=fingerprint(location.item)
+        record.item,record.owner,record.borrower,record.pack=loan.raw.sharedItem,
+            loan.raw.itemOwner,loan.raw.plannedActor,location.slot
+        state.transfer=assert(S.ValidateJournal(record))
+        loan.phase='receiving';loan.since=now
+        S.returnSent,S.repositionSent=nil,nil
+        give(owner,borrower,record.item);return
+    end
+    local j=state.transfer
+    if not j then releaseNativeLoan();return end
+    if not owner or not borrower or not location or not sameArea(owner,borrower)
+        or not matching(location.item,j)then
+        failed('gear changed or character unavailable; automatic return paused');return
+    end
+    if BfBot.Persist.GetItemSwap(borrower)then return end
+    if loan.phase=='receiving'and not loan.cancelled and location.key==j.borrower then
+        if BfBot.Scan._NativeCanWearItem(borrower,location.item)~=true then
+            failed('recipient can no longer wear this item')
+        else loan.phase='ready';resumeNativeWaiters();return end
+    end
+    if loan.phase=='ready'or loan.phase=='using'then return end
+    if loan.phase=='receiving'then
+        local now=BfBot.Exec._GetGameTime()
+        if now and loan.since and now-loan.since>300 then failed('item transfer timed out')end
+        return
+    end
+    if location.key==j.owner and location.slot==j.pack then
+        if not EEex_Trigger_EvalConditionalStringAsAIBase('ActionListEmpty()',owner)
+            or not EEex_Trigger_EvalConditionalStringAsAIBase('ActionListEmpty()',borrower)then return end
+        state.transfer=nil;releaseNativeLoan()
+    elseif location.key==j.borrower then
+        if not freePack(owner)or itemAt(owner,j.pack)then failed('original backpack slot is occupied; return paused');return end
+        if not S.returnSent or wall-S.returnSent>4000 then give(borrower,owner,j.item);S.returnSent=wall end
+    elseif location.key==j.owner then
+        if itemAt(owner,j.pack)then failed('original backpack slot is occupied; return paused');return end
+        if not S.repositionSent or wall-S.repositionSent>4000 then
+            local ok,why=BfBot.Scan._NativeMoveToBackpack(owner,location.slot,j.pack)
+            if not ok then failed(why or 'item reposition failed');return end
+            S.repositionSent=wall
+        end
+    else failed('item moved to another character; return paused')end
 end

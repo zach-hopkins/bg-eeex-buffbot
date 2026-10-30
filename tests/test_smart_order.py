@@ -118,14 +118,14 @@ def test_phase_model_matches_aura_and_just_in_time_release(lua):
     assert lua.execute("""
       local ages=P.CastAges({{caster='A',release=64},{caster='B',release=24},
         {caster='A',release=44},{boundary=true},{caster='B',release=14}})
-      return ages[1]==94 and ages[2]==90 and ages[3]==14 and ages[5]==0
+      return ages[1]==84 and ages[2]==80 and ages[3]==14 and ages[5]==0
     """)
 
 
 def test_dependency_boundaries_do_not_reset_a_casters_aura(lua):
     assert lua.execute("""
       local ages,finish=P.CastAges({{caster='A',release=4},{boundary=true},{caster='A',release=4}})
-      return finish==104 and ages[1]==100 and ages[3]==0
+      return finish==94 and ages[1]==90 and ages[3]==0
     """)
 
 
@@ -133,7 +133,7 @@ def test_jit_does_not_delay_preparation_to_align_intermediate_casts(lua):
     assert lua.execute("""
       local ages,finish=P.CastAges({{caster='A',release=64},{caster='B',release=24},
         {boundary=true},{caster='B',release=14}})
-      return finish==114 and ages[1]==14 and ages[2]==90 and ages[4]==0
+      return finish==104 and ages[1]==14 and ages[2]==80 and ages[4]==0
     """)
 
 

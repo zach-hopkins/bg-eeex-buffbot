@@ -275,6 +275,33 @@ local function _buildCountMap(sprite)
 end
 BfBot.Scan._BuildCountMap = _buildCountMap
 
+-- Prediction and live scans share classification, names, icons and per-level
+-- ability selection. This does not add a spell to any creature's spellbook.
+function BfBot.Scan.DescribeSpell(resref,casterLevel)
+    local h=EEex_Resource_Demand(resref,'SPL')
+    local a=h and (h:getAbilityForLevel(casterLevel or 1)or h:getAbility(0))
+    if not a then return nil end
+    return _buildCatalogEntry(nil,resref,h,a,casterLevel or 1)
+end
+
+-- Bounded, read-only text resources avoid executable-specific offsets and
+-- temporary native 2DA parser objects (some EEex builds lack their destructor).
+function BfBot.Scan.ReadTextResource(name,extension,limit)
+    if not EEex_Resource_Fetch or not EEex_ReadU8 then return nil end
+    local ok,text=pcall(function()
+        local res=EEex_Resource_Fetch(name,extension)
+        local data=res and res:Demand();local size=res and res.nSize
+        if not data or type(size)~='number'or size<1 or size>(limit or 262144)then return nil end
+        local ptr=EEex_UDToPtr(data);local bytes={}
+        for i=0,size-1 do
+            local n=EEex_ReadU8(ptr+i);if n==0 then break end
+            bytes[#bytes+1]=string.char(n)
+        end
+        return table.concat(bytes)
+    end)
+    return ok and text or nil
+end
+
 --- Internal: catalog entry for one spell resref using the caster-level
 --- ability (falling back to the iterator's ability, then ability 0), or nil
 --- when the SPL cannot be loaded.
@@ -320,6 +347,15 @@ local _itemRaceMasks = {
 
 -- BG2EE 2.6.6 native inventory eligibility, including conditional usability.
 -- No call is made on an unknown executable or a patched function body.
+local function inventoryProfile(base,pe)
+    local stamp,size=EEex_ReadU32(pe+8),EEex_ReadU32(pe+80)
+    if stamp==0x609437B3 and size==0x3530000 then
+        return {usable=0x271550,swap=0x28F960,pack=0x290E00}
+    elseif stamp==0x6A18D73D and size==0x3532000 then
+        -- BG2EE Steam 2.7.3: EEex's matching symbol map and decoded call sites.
+        return {usable=0x2717B0,swap=0x28FF20,pack=0x2913C0}
+    end
+end
 local _nativeItemCheck, _nativeItemFFI, _nativeItemChecked
 function BfBot.Scan._NativeCanWearItem(sprite, item)
     if not _nativeItemChecked then
@@ -329,9 +365,10 @@ function BfBot.Scan._NativeCanWearItem(sprite, item)
             local base = EEex_GetImageBase()
             if EEex_ReadU16(base) ~= 0x5A4D then return end
             local pe = base + EEex_ReadU32(base + 0x3C)
-            if EEex_ReadU32(pe) ~= 0x4550 or EEex_ReadU32(pe + 8) ~= 0x609437B3
-                or EEex_ReadU32(pe + 24 + 56) ~= 0x3530000 then return end
-            local address = base + 0x271550
+            if EEex_ReadU32(pe) ~= 0x4550 then return end
+            local profile=inventoryProfile(base,pe)
+            if not profile then return end
+            local address = base + profile.usable
             local signature = {0x48,0x89,0x74,0x24,0x20,0x57,0x48,0x83,0xEC,0x30,0x49,0x8B,0xF8}
             for i, byte in ipairs(signature) do
                 if EEex_ReadU8(address + i - 1) ~= byte then return end
@@ -340,8 +377,8 @@ function BfBot.Scan._NativeCanWearItem(sprite, item)
             -- item types after the ordinary class/kit/conditional predicate.
             -- Pin both calls, rather than trusting a common function prologue.
             for _, probe in ipairs({
-                {0x2715D7,{0xE8,0x74,0x00,0x00,0x00}},
-                {0x271617,{0xE8,0xE4,0x76,0xF8,0xFF}},
+                {profile.usable+0x87,{0xE8,0x74,0x00,0x00,0x00}},
+                {profile.usable+0xC7,{0xE8,0xE4,0x76,0xF8,0xFF}},
             }) do
                 for i,byte in ipairs(probe[2]) do
                     if EEex_ReadU8(base+probe[1]+i-1)~=byte then return end
@@ -383,11 +420,12 @@ local function packAPI()
         local base=EEex_GetImageBase()
         if EEex_ReadU16(base)~=0x5A4D then return end
         local pe=base+EEex_ReadU32(base+0x3C)
-        if EEex_ReadU32(pe)~=0x4550 or EEex_ReadU32(pe+8)~=0x609437B3
-            or EEex_ReadU32(pe+80)~=0x3530000 then return end
+        if EEex_ReadU32(pe)~=0x4550 then return end
+        local profile=inventoryProfile(base,pe)
+        if not profile then return end
         for _,probe in ipairs({
-            {0x28F960,{0x40,0x55,0x53,0x56,0x57,0x41,0x54,0x41,0x56,0x41,0x57}},
-            {0x290E00,{0x40,0x55,0x53,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56}},
+            {profile.swap,{0x40,0x55,0x53,0x56,0x57,0x41,0x54,0x41,0x56,0x41,0x57}},
+            {profile.pack,{0x40,0x55,0x53,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56}},
         })do
             for i,byte in ipairs(probe[2])do
                 if EEex_ReadU8(base+probe[1]+i-1)~=byte then return end
@@ -395,8 +433,8 @@ local function packAPI()
         end
         local ffi=require('ffi')
         _packAPI={ffi=ffi,
-            swap=ffi.cast('int(*)(void*,short,short,void**,int*,unsigned short,unsigned char,void*)',base+0x28F960),
-            pack=ffi.cast('int(*)(void*,short,void**,short,int*,unsigned short,unsigned char,int,int)',base+0x290E00)}
+            swap=ffi.cast('int(*)(void*,short,short,void**,int*,unsigned short,unsigned char,void*)',base+profile.swap),
+            pack=ffi.cast('int(*)(void*,short,void**,short,int*,unsigned short,unsigned char,int,int)',base+profile.pack)}
     end)
     if not ok then _packAPI=nil end
     return _packAPI
@@ -429,6 +467,9 @@ function BfBot.Scan._NativeMoveToBackpack(sprite,source,destination)
     if not item or arr:get(destination) then return false,'inventory slots changed' end
     local inventory=EEex_Read64(EEex_UDToPtr(chitin)+0x10C8)
     if not inventory or inventory==0 then return false,'inventory unavailable' end
+    if inventoryScreen and inventory~=EEex_UDToPtr(inventoryScreen) then
+        return false,'inventory binding changed'
+    end
     local cursor=ffi.cast('void**',inventory+0x50)
     if cursor[0]~=nil then return false,'finish moving the held inventory item first' end
     local pointer=EEex_UDToPtr(item)
@@ -895,7 +936,7 @@ function BfBot.Scan.GetCastableSpells(sprite)
         end
 
         local iterOk, iterErr = pcall(function()
-            for lvl, idx, resref, ability in iterFn(sprite) do
+            for lvl, idx, resref, headerOrAbility, ability in iterFn(sprite) do
                 if resref and resref ~= "" and not seen[resref] then
                     -- Skip BuffBot's own generated innates
                     if resref:sub(1, 4) ~= "BFBT" then
@@ -910,9 +951,11 @@ function BfBot.Scan.GetCastableSpells(sprite)
                             entry = { resref = resref, kind = "spl", count = 0 }
                         else
                             -- SPL header + caster-level ability -> catalog entry
-                            entry = _catalogEntryForResref(sprite, resref, ability)
+                            entry = _catalogEntryForResref(sprite, resref, ability or headerOrAbility)
                         end
                         if entry then
+                            entry.bookLevel=type(lvl)=='number'and lvl+1 or nil
+                            entry.bookType=({mage=1,priest=2,innate=4})[iter.name]
                             spells[resref] = entry
                             count = count + 1
                         end
@@ -1065,6 +1108,149 @@ end
 --- acting on an entry later must re-validate by re-classifying the freshly
 --- resolved sprite, not trust a stored entry (Task 7 queue builders rely on
 --- this contract).
+-- Ownership predicates adapted from upstream ae8c969 (MIT).
+BfBot.Scan._OWNER_CHAIN_MAX = 3
+function BfBot.Scan._ReadSummonOrigin(sprite)
+    local readable = false
+
+    -- Clone linkage (probe-verified): m_bInCopy / m_nCopyParent ~= -1 mark
+    -- "some clone" (scriptname "COPY" for BOTH PI and Sim — never type it by
+    -- scriptname); stat 139 distinguishes PI(2) / Sim(3) / Mislead(1).
+    local copyParent = nil
+    local okCp, cp = pcall(function() return sprite.m_nCopyParent end)
+    if okCp then
+        readable = true
+        if type(cp) == "number" and cp ~= -1 then copyParent = cp end
+    else
+        BfBot._Warn("[Scan] _ReadSummonOrigin: m_nCopyParent read failed: "
+            .. tostring(cp))
+    end
+    local inCopy = false
+    local okIc, ic = pcall(function() return sprite.m_bInCopy end)
+    if okIc then
+        readable = true
+        inCopy = ic
+    else
+        BfBot._Warn("[Scan] _ReadSummonOrigin: m_bInCopy read failed: "
+            .. tostring(ic))
+    end
+    if copyParent ~= nil or inCopy == true or inCopy == 1 then
+        local cloneType = nil
+        local okCt, ct = pcall(function() return sprite:getStat(139) end)
+        if okCt and type(ct) == "number" then
+            cloneType = ct
+        elseif not okCt then
+            BfBot._Warn("[Scan] _ReadSummonOrigin: getStat(139) failed: "
+                .. tostring(ct))
+        end
+        return { kind = "clone", ownerId = copyParent, cloneType = cloneType }
+    end
+
+    -- Summon linkage. Lab-measured on 2.7.3.0 / EEex 1.3.1 (the same
+    -- wizeye.CRE summoned by SPWI425 and spawned by CreateCreatureObject):
+    -- summoned -> the summoner's object id, created -> -1. 0 is treated as
+    -- empty too; no build is known to use it, and neither is a valid id.
+    local okSb, summonerId = pcall(function()
+        return sprite.m_lSummonedBy.m_Instance
+    end)
+    if okSb then
+        readable = true
+        if type(summonerId) == "number" and summonerId ~= 0
+                and summonerId ~= -1 then
+            return { kind = "summon", ownerId = summonerId }
+        end
+    else
+        BfBot._Warn("[Scan] _ReadSummonOrigin: m_lSummonedBy read failed: "
+            .. tostring(summonerId))
+    end
+
+    -- Save/load fallback: the engine does not persist the summoner link, so
+    -- EEex stores the summoner's UUID in UDAux and restores m_lSummonedBy
+    -- ASYNCHRONOUSLY once that sprite is back (EEex_Marshal.lua). Between the
+    -- load and that callback the live field is empty while the UUID already
+    -- proves the creature was summoned — without this, the party's summons
+    -- would drop out of the panel for the first moments after every load.
+    local okUd, uuid = pcall(function()
+        local aux = EEex_GetUDAux(sprite)
+        return aux and aux["EEex_SummonerUUID"] or nil
+    end)
+    if okUd then
+        readable = true
+        if uuid ~= nil then return { kind = "summon", ownerId = nil } end
+    else
+        BfBot._Warn("[Scan] _ReadSummonOrigin: UDAux read failed: "
+            .. tostring(uuid))
+    end
+
+    if not readable then return nil, "unknown" end
+    return nil, "none"
+end
+
+--- Walk an origin owner chain looking for a party member. A Simulacrum's
+--- Planetar is owned by the Simulacrum, which is owned by a PC — the chain,
+--- not the direct owner, decides.
+--- @return true   the chain reaches a party member (portrait slot ~= -1)
+--- @return false  it ends at a creature nobody in the party conjured — an
+---                NPC's own summon. The caller REJECTS.
+--- @return nil    unresolvable (owner dead, link not restored yet). The
+---                caller ACCEPTS: the sprite passed the EA band and WAS
+---                conjured, so dropping it would hide the player's own
+---                summons whenever their summoner is gone.
+function BfBot.Scan._OwnerChainReachesParty(ownerId)
+    local seen = {}
+    local id = ownerId
+    for _ = 1, BfBot.Scan._OWNER_CHAIN_MAX do
+        if type(id) ~= "number" or seen[id] then return nil end
+        seen[id] = true
+        local okRes, owner = pcall(function()
+            local obj = EEex_GameObject_Get(id)
+            if obj and EEex_GameObject_IsSprite(obj, false) then
+                return EEex_GameObject_CastUserType(obj)
+            end
+            return nil
+        end)
+        if not okRes then
+            BfBot._Warn("[Scan] _OwnerChainReachesParty: resolve failed (id="
+                .. tostring(id) .. "): " .. tostring(owner))
+            return nil
+        end
+        if not owner then return nil end
+        local okPor, portrait = pcall(EEex_Sprite_GetPortraitIndex, owner)
+        if okPor and portrait ~= -1 then return true end
+        local origin = BfBot.Scan._ReadSummonOrigin(owner)
+        if not origin then return false end
+        id = origin.ownerId
+    end
+    return nil
+end
+
+--- Classify one sprite as an allied summon caster. Returns a summon-entry
+--- table, or nil if any structural filter rejects it. Shared by the
+--- GetAlliedSummons area sweep and the late-join listener (Task 11).
+--- Filters, cheap-first: alive -> not-party -> allied EA 2..30 -> conjured
+--- by the party -> castable.
+--- (Probe: PI clone / Simulacrum / Planetar are all EA=4 ALLY; party EA=2 is
+--- excluded by the portrait filter, not by EA; neutral townsfolk are 128.
+--- The EA band also admits friendly quest NPCs and charmed creatures — the
+--- origin filter, not the band, keeps those out; see _ReadSummonOrigin.)
+--- @return entry table, or nil + a reason string: "origin" means the sprite
+---     is allied but nobody in the party conjured it. Callers that classify a
+---     JUST-SPAWNED sprite must treat "origin" as retryable, not as a verdict:
+---     the engine sets the linkage moments after the sprite loads.
+--- Entry shape:
+---   { oid = number, sprite = CGameSprite, name = string,
+---     kind = "clone"|"summon", identity = string,
+---     ownerName = string|nil, cloneType = number|nil }
+--- cloneType is derived stat 139 PUPPETMASTERTYPE: 2=Project Image,
+--- 3=Simulacrum (probe-verified), 1=Mislead (IESDP, untested).
+--- NOTE: `sprite` is for immediate build-time use by the CALLER only — never
+--- cache it across frames (issue-#38 freed-pointer discipline). Anything that
+--- holds an entry re-resolves via oid+name (BfBot.Exec._ResolveCaster).
+--- NOTE: the entry reflects allegiance AS OF classification time — EA and
+--- alive-ness can change afterwards (charm, dominate, death). Consumers
+--- acting on an entry later must re-validate by re-classifying the freshly
+--- resolved sprite, not trust a stored entry (Task 7 queue builders rely on
+--- this contract).
 function BfBot.Scan.ClassifySummonSprite(sprite)
     if not sprite then return nil end
 
@@ -1097,6 +1283,24 @@ function BfBot.Scan.ClassifySummonSprite(sprite)
     end
     if type(ea) ~= "number" or ea < 2 or ea > 30 then return nil end
 
+    -- 3b. Conjured BY THE PARTY (issue #101). Allied EA is not a summon
+    --     test: a friendly quest NPC like Vithal passes it with a full
+    --     spellbook, and so does a charmed enemy. The player cannot command
+    --     those anywhere else in the game, so BuffBot must not either —
+    --     only what a party member summoned or cloned belongs here. Cheap
+    --     field reads, so this runs BEFORE the spellbook scan below.
+    local origin, originWhy = BfBot.Scan._ReadSummonOrigin(sprite)
+    if not origin then
+        if originWhy ~= "unknown" then return nil, "origin" end
+        -- No linkage field readable at all: keep the pre-#101 permissive
+        -- behaviour rather than emptying the view on an engine build we
+        -- cannot interrogate.
+        origin = { kind = "summon" }
+    elseif origin.ownerId ~= nil
+            and BfBot.Scan._OwnerChainReachesParty(origin.ownerId) == false then
+        return nil, "origin"
+    end
+
     -- 4. Has castable spells (GetCastableSpells is sprite-generic; its cache
     --    is keyed by m_id, so summon scans never collide with party scans)
     local okCnt, count = pcall(function()
@@ -1118,52 +1322,29 @@ function BfBot.Scan.ClassifySummonSprite(sprite)
     end
     local name = BfBot._GetName(sprite)
 
-    -- Clone detection (probe-verified): m_bInCopy / m_nCopyParent ~= -1 mark
-    -- "some clone" (scriptname "COPY" for BOTH PI and Sim — never type it by
-    -- scriptname); stat 139 distinguishes PI(2) / Sim(3) / Mislead(1).
-    local kind, cloneType, ownerName = "summon", nil, nil
-    local okCp, copyParent = pcall(function() return sprite.m_nCopyParent end)
-    if not okCp then
-        BfBot._Warn("[Scan] ClassifySummonSprite: m_nCopyParent read failed: "
-            .. tostring(copyParent))
-        copyParent = -1  -- treat as non-clone; the entry itself is still valid
-    end
-    local okIc, inCopy = pcall(function() return sprite.m_bInCopy end)
-    if not okIc then
-        BfBot._Warn("[Scan] ClassifySummonSprite: m_bInCopy read failed: "
-            .. tostring(inCopy))
-        inCopy = false
-    end
-    local hasParent = type(copyParent) == "number" and copyParent ~= -1
-    if inCopy == true or inCopy == 1 or hasParent then
-        kind = "clone"
-        local okCt, ct = pcall(function() return sprite:getStat(139) end)
-        if okCt and type(ct) == "number" then
-            cloneType = ct
-        elseif not okCt then
-            BfBot._Warn("[Scan] ClassifySummonSprite: getStat(139) failed: "
-                .. tostring(ct))
-        end
-        -- Owner resolution: m_nCopyParent is the owner's object ID. Owner
-        -- gone or unresolvable -> still a valid entry with ownerName = nil
-        -- (identity falls through to the non-clone rules).
-        if hasParent then
-            local okOw, owner = pcall(function()
-                local obj = EEex_GameObject_Get(copyParent)
-                if obj and EEex_GameObject_IsSprite(obj, false) then
-                    return EEex_GameObject_CastUserType(obj)
-                end
-                return nil
-            end)
-            if not okOw then
-                BfBot._Warn("[Scan] ClassifySummonSprite: owner resolve failed"
-                    .. " (id=" .. tostring(copyParent) .. "): " .. tostring(owner))
-            elseif owner then
-                local on = BfBot._GetName(owner)
-                -- _GetName's "?" fallback would key config as "clone:?" —
-                -- treat a nameless owner as unresolved instead.
-                if on ~= "?" then ownerName = on end
+    -- Kind / clone type come from the linkage filter 3b already read — one
+    -- read per field, and never a second detection rule.
+    local kind, cloneType, ownerName = origin.kind, origin.cloneType, nil
+    -- Owner resolution feeds the identity key, which uses the owner name for
+    -- clones only ("clone:<owner>"). Owner gone or unresolvable -> still a
+    -- valid entry with ownerName = nil (identity falls through to the
+    -- non-clone rules).
+    if kind == "clone" and origin.ownerId ~= nil then
+        local okOw, owner = pcall(function()
+            local obj = EEex_GameObject_Get(origin.ownerId)
+            if obj and EEex_GameObject_IsSprite(obj, false) then
+                return EEex_GameObject_CastUserType(obj)
             end
+            return nil
+        end)
+        if not okOw then
+            BfBot._Warn("[Scan] ClassifySummonSprite: owner resolve failed"
+                .. " (id=" .. tostring(origin.ownerId) .. "): " .. tostring(owner))
+        elseif owner then
+            local on = BfBot._GetName(owner)
+            -- _GetName's "?" fallback would key config as "clone:?" —
+            -- treat a nameless owner as unresolved instead.
+            if on ~= "?" then ownerName = on end
         end
     end
 
@@ -1202,7 +1383,7 @@ function BfBot.Scan.ClassifySummonSprite(sprite)
     }
 end
 
---- All allied summon casters in the leader's current area.
+--- Every summon and clone the party conjured in the leader's current area.
 --- Returns an ARRAY of summon entries (empty when none). Cached for
 --- _SUMMON_CACHE_TTL ms; a cache HIT re-resolves every entry's sprite by
 --- oid+name via BfBot.Exec._ResolveCaster and drops entries that no longer

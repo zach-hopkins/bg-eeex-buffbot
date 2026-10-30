@@ -68,6 +68,7 @@ end
 
 -- INI preference defaults (cross-save, stored in baldur.ini)
 BfBot.Persist._INI_DEFAULTS = {
+    RefreshBelow = 0,    -- optional active-buff renewal threshold in seconds
     LongThreshold = 300,  -- seconds (5 turns) — divides "long" from "short"
     DefaultPreset = 1,    -- which preset tab opens by default
     HotkeyCode    = 87,   -- F11
@@ -2498,4 +2499,11 @@ function BfBot.Persist.BuildQueueForCharacter(slot, presetIndex)
     end
 
     return queue
+end
+
+-- Read-only renewal policy. Invalid values never become a force-cast override.
+function BfBot.Persist.GetRefreshBelow()
+    local value=BfBot.Persist.GetPref('RefreshBelow')
+    return type(value)=='number' and value==value and value>=0 and value<=86400
+        and math.floor(value) or 0
 end

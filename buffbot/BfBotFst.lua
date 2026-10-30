@@ -26,35 +26,42 @@ function F.Safe()
 end
 function F.Reset(reason)
     local run=F.run
-    if not run then return end
-    F.run=nil -- release before callbacks; never restore over another owner
+    if not run then return true end
+    run.releaseReason=run.releaseReason or reason or 'reset'
     local ok,current=pcall(rate)
-    local restored=false
-    if ok and current==run.applied then
+    local restored=run.rateRestored or false
+    if not ok or type(current)~='number' then
+        if not run.warnedRestore then BfBot._Warn('Fast forward: rate read failed; restoration pending');run.warnedRestore=true end
+        return false
+    end
+    if current==run.applied then
         local changed,result=pcall(setRate,run.original)
         restored=changed and result==true
         if not restored then
-            -- Keep ownership so the next UI tick can retry the failed restore.
-            F.run=run;run.releaseReason=reason or 'restore retry'
-            BfBot._Warn('Fast forward: could not restore simulation speed; retrying')
+            if not run.warnedRestore then BfBot._Warn('Fast forward: could not restore simulation speed; retrying');run.warnedRestore=true end
             return false
         end
+        run.rateRestored=true
     end
     local renderRestored=false
     if run.render then
         local read,ours=pcall(function()
             return EEex.UncapFPS_FPSLimitEnabled==true and EEex.UncapFPS_FPSLimit==run.render.applied
         end)
-        if read and ours then
+        if not read then return false end
+        if ours then
             local changed=pcall(function()
                 EEex.UncapFPS_FPSLimit=run.render.original
                 EEex.UncapFPS_FPSLimitEnabled=run.render.enabled
             end)
             renderRestored=changed
+            if not changed then return false end
         end
     end
-    local audit={original=run.original,applied=run.applied,reason=reason or 'reset',
-        restored=restored,wallMs=Infinity_GetClockTicks()-run.wall,gameTicks=0,
+    F.run=nil -- release only after readable/restored ownership decisions
+    local clockOk,now=pcall(Infinity_GetClockTicks)
+    local audit={original=run.original,applied=run.applied,reason=run.releaseReason,
+        restored=restored,wallMs=clockOk and type(now)=='number' and now-run.wall or 0,gameTicks=0,
         renderCap=run.render and run.render.applied or 0,renderRestored=renderRestored}
     local read,tick=pcall(gameTick)
     if read then audit.gameTicks=tick-run.tick end
@@ -70,6 +77,16 @@ function F.Reset(reason)
         end
     end
     return restored
+end
+-- Adapted from upstream: lifecycle transitions may remove the normal UI tick.
+-- Retry a bounded number of times, retaining ownership on failure for later.
+function F.Release(reason)
+    for _=1,3 do
+        if not F.run then return true end
+        F.Reset(reason)
+        if not F.run then return true end
+    end
+    return false
 end
 function F.Start(queue,preset)
     if type(queue)~='table' or #queue==0 then return false,'reason.exec.empty_queue',{} end
@@ -88,8 +105,11 @@ function F.Start(queue,preset)
     end
     local state=BfBot.Plan.GetState()
     local multiplier=state and state.fastRate==4 and 4 or 2
+    local wallOk,wall=pcall(Infinity_GetClockTicks)
+    local tickOk,tick=pcall(gameTick)
+    if not wallOk or type(wall)~='number' or not tickOk or type(tick)~='number' then return false,'reason.exec.empty_queue',{} end
     local applied=math.min(120,original*multiplier)
-    local run={original=original,applied=applied,wall=Infinity_GetClockTicks(),tick=gameTick()}
+    local run={original=original,applied=applied,wall=wall,tick=tick}
     F.run=run
     -- EEex decouples render and simulation rates. Rendering every possible
     -- frame can starve faster logic; 30 FPS retains the native game's visual
@@ -103,7 +123,11 @@ function F.Start(queue,preset)
         end
     end)
     local changed,result=pcall(setRate,applied)
-    if not changed or not result then F.Reset('start failed');return false,'reason.exec.empty_queue',{} end
+    if not changed or not result then
+        local read,current=pcall(rate)
+        if read and type(current)=='number' then run.applied=current end
+        F.Release('start failed');return false,'reason.exec.empty_queue',{}
+    end
     local copy={}
     for i,entry in ipairs(queue or {}) do
         copy[i]={};for k,v in pairs(entry) do copy[i][k]=v end
@@ -111,7 +135,7 @@ function F.Start(queue,preset)
     end
     local started,a,b,c=pcall(BfBot.Exec.Start,copy,0,preset)
     if not started or not a then
-        F.Reset('start failed')
+        F.Release('start failed')
         if not started then error(a) end
         return a,b,c
     end
@@ -126,7 +150,10 @@ end
 function F.Tick()
     local run=F.run;if not run then return end
     if run.releaseReason then return F.Reset(run.releaseReason) end
-    local now=Infinity_GetClockTicks()
+    local clockOk,now=pcall(Infinity_GetClockTicks)
+    if not clockOk or type(now)~='number' or now<run.wall then
+        F.Reset('clock unavailable or reset');BfBot.Exec.Stop();return
+    end
     -- The menu callback can run at uncapped rendering FPS. Area-wide combat
     -- checks belong on a short wall-time cadence, not every rendered frame.
     if run.lastGuard and now>=run.lastGuard and now-run.lastGuard<50 then return F.CheckDone() end
@@ -136,7 +163,9 @@ function F.Tick()
     local reason
     if not ok or current~=run.applied then reason='external speed change'
     elseif not checked or not safe then reason=checked and why or 'engine inspection failed'
-    elseif now-run.wall>120000 then reason='wall timeout' end
+    end
+    -- Pauses and healthy long plans do not time out in wall time. The executor
+    -- already has a no-progress watchdog measured in game time, frozen on pause.
     if reason then
         F.Reset(reason)
         BfBot.Exec.Stop() -- normal item recovery continues at the restored rate
@@ -144,8 +173,15 @@ function F.Tick()
     end
     F.CheckDone()
 end
+function F.OnDestroyed()
+    F.Release('load or exit')
+    -- Same-party reloads keep the same portrait names but lose every queued
+    -- completion callback. Reset execution explicitly, even in Normal mode.
+    if BfBot.Exec and BfBot.Exec._HardReset then BfBot.Exec._HardReset()end
+    if BfBot._CloseLog then BfBot._CloseLog()end
+end
 function F.Init()
     if BfBot._fastListenersRegistered then return end
-    EEex_GameState_AddDestroyedListener(function() BfBot.Fast.Reset('load or exit') end)
+    EEex_GameState_AddDestroyedListener(function() BfBot.Fast.OnDestroyed()end)
     BfBot._fastListenersRegistered=true
 end

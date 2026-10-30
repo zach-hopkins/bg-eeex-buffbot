@@ -12,6 +12,12 @@ button
 }
 button
 {
+ name "rxHudTrigger"
+ area 0 0 100 30
+ action "BfBot.Visual.Close()"
+}
+button
+{
  name "rxDismiss"
  area 0 0 0 0
  action "BfBot.Visual.Close()"
@@ -495,14 +501,14 @@ button
  action "BfBot.Visual.ChangeView('dashboard')"
  bam "BFBTAB"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "BfBot.PartyUI.view=='dashboard' and 2 or 0"
+ frame lua "BfBot.Visual.ButtonFrame('rxBuffs',(BfBot.PartyUI.view=='dashboard' and 2 or 0),2)"
  scaleToClip
 }
 label
 {
  name "rxBuffsCaption"
  area 0 0 100 30
- text lua "BfBot.Plan.Text('Buffs')"
+ text lua "BfBot.Plan.Text('Party Buffs')"
  text style "bvr_tab"
  text point 15
  text align left center
@@ -518,7 +524,7 @@ button
  action "BfBot.Visual.ChangeView('summary')"
  bam "BFBTAB"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "BfBot.PartyUI.view=='summary' and 2 or 0"
+ frame lua "BfBot.Visual.ButtonFrame('rxSummary',(BfBot.PartyUI.view=='summary' and 2 or 0),2)"
  scaleToClip
 }
 label
@@ -541,7 +547,7 @@ button
  action "BfBot.Visual.ChangeView('order')"
  bam "BFBTAB"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "BfBot.PartyUI.view=='order' and 2 or 0"
+ frame lua "BfBot.Visual.ButtonFrame('rxOrder',(BfBot.PartyUI.view=='order' and 2 or 0),2)"
  scaleToClip
 }
 label
@@ -564,7 +570,7 @@ button
  action "BfBot.Visual.ToggleChoices('presets')"
  bam "BFBPLAT"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "0"
+ frame lua "BfBot.Visual.ButtonFrame('rxPreset',(0),2)"
  scaleToClip
 }
 label
@@ -595,7 +601,7 @@ button
  action "BfBot.PartyUI.CreatePreset()"
  bam "BFBACT"
  sequence lua "5"
- frame lua "0"
+ frame lua "BfBot.Visual.ButtonFrame('rxNew',(0),1)"
  scaleToClip
  tooltip lua "BfBot.Plan.Text('New preset')"
 }
@@ -607,7 +613,7 @@ button
  action "BfBot.Visual.ToggleChoices('settings')"
  bam "BFBACT"
  sequence lua "4"
- frame lua "0"
+ frame lua "BfBot.Visual.ButtonFrame('rxOptions',(BfBot.Visual.popup=='menu' and BfBot.PartyUI.choiceMode=='settings' and 1 or 0),1)"
  scaleToClip
  tooltip lua "BfBot.Plan.Text('Options')"
 }
@@ -619,231 +625,9 @@ button
  action "BfBot.Visual.Close()"
  bam "BFBCLOSE"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "0"
+ frame lua "BfBot.Visual.ButtonFrame('rxClose',(0),1)"
  scaleToClip
  tooltip lua "BfBot.Plan.Text('Close')"
-}
-button
-{
- name "rxRecipient0"
- area 0 0 100 30
- enabled "BfBot.PartyUI.IsDashboard()"
- action "BfBot.PartyUI.SetRecipient(0)"
- bam "BFBTAB"
- sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "BfBot.PartyUI.IsRecipient(0) and 2 or 0"
- scaleToClip
- tooltip lua "BfBot.PartyUI.RecipientName(0)"
-}
-label
-{
- name "rxRecipient0Caption"
- area 0 0 100 30
- text lua "BfBot.PartyUI.RecipientName(0)"
- text style "bvr_button"
- text point 13
- text align left center
- ignoreEvents
- enabled "BfBot.PartyUI.IsDashboard()"
- text align center center
-}
-button
-{
- name "rxRecipient1"
- area 0 0 100 30
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(1)~=''"
- action "BfBot.PartyUI.SetRecipient(1)"
- bam "BFBTAB"
- sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "BfBot.PartyUI.IsRecipient(1) and 2 or 0"
- scaleToClip
- tooltip lua "BfBot.PartyUI.RecipientName(1)"
-}
-label
-{
- name "rxRecipient1Caption"
- area 0 0 100 30
- text lua "BfBot.PartyUI.RecipientName(1)"
- text style "bvr_button"
- text point 13
- text align left center
- ignoreEvents
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(1)~=''"
- text align center center
-}
-label
-{
- name "rxRecipientPortrait1"
- area 0 0 100 30
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(1)~=''"
- bitmap lua "BfBot.Visual.FilterPortrait(1)"
- scaleToClip
- ignoreEvents
-}
-button
-{
- name "rxRecipient2"
- area 0 0 100 30
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(2)~=''"
- action "BfBot.PartyUI.SetRecipient(2)"
- bam "BFBTAB"
- sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "BfBot.PartyUI.IsRecipient(2) and 2 or 0"
- scaleToClip
- tooltip lua "BfBot.PartyUI.RecipientName(2)"
-}
-label
-{
- name "rxRecipient2Caption"
- area 0 0 100 30
- text lua "BfBot.PartyUI.RecipientName(2)"
- text style "bvr_button"
- text point 13
- text align left center
- ignoreEvents
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(2)~=''"
- text align center center
-}
-label
-{
- name "rxRecipientPortrait2"
- area 0 0 100 30
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(2)~=''"
- bitmap lua "BfBot.Visual.FilterPortrait(2)"
- scaleToClip
- ignoreEvents
-}
-button
-{
- name "rxRecipient3"
- area 0 0 100 30
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(3)~=''"
- action "BfBot.PartyUI.SetRecipient(3)"
- bam "BFBTAB"
- sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "BfBot.PartyUI.IsRecipient(3) and 2 or 0"
- scaleToClip
- tooltip lua "BfBot.PartyUI.RecipientName(3)"
-}
-label
-{
- name "rxRecipient3Caption"
- area 0 0 100 30
- text lua "BfBot.PartyUI.RecipientName(3)"
- text style "bvr_button"
- text point 13
- text align left center
- ignoreEvents
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(3)~=''"
- text align center center
-}
-label
-{
- name "rxRecipientPortrait3"
- area 0 0 100 30
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(3)~=''"
- bitmap lua "BfBot.Visual.FilterPortrait(3)"
- scaleToClip
- ignoreEvents
-}
-button
-{
- name "rxRecipient4"
- area 0 0 100 30
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(4)~=''"
- action "BfBot.PartyUI.SetRecipient(4)"
- bam "BFBTAB"
- sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "BfBot.PartyUI.IsRecipient(4) and 2 or 0"
- scaleToClip
- tooltip lua "BfBot.PartyUI.RecipientName(4)"
-}
-label
-{
- name "rxRecipient4Caption"
- area 0 0 100 30
- text lua "BfBot.PartyUI.RecipientName(4)"
- text style "bvr_button"
- text point 13
- text align left center
- ignoreEvents
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(4)~=''"
- text align center center
-}
-label
-{
- name "rxRecipientPortrait4"
- area 0 0 100 30
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(4)~=''"
- bitmap lua "BfBot.Visual.FilterPortrait(4)"
- scaleToClip
- ignoreEvents
-}
-button
-{
- name "rxRecipient5"
- area 0 0 100 30
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(5)~=''"
- action "BfBot.PartyUI.SetRecipient(5)"
- bam "BFBTAB"
- sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "BfBot.PartyUI.IsRecipient(5) and 2 or 0"
- scaleToClip
- tooltip lua "BfBot.PartyUI.RecipientName(5)"
-}
-label
-{
- name "rxRecipient5Caption"
- area 0 0 100 30
- text lua "BfBot.PartyUI.RecipientName(5)"
- text style "bvr_button"
- text point 13
- text align left center
- ignoreEvents
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(5)~=''"
- text align center center
-}
-label
-{
- name "rxRecipientPortrait5"
- area 0 0 100 30
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(5)~=''"
- bitmap lua "BfBot.Visual.FilterPortrait(5)"
- scaleToClip
- ignoreEvents
-}
-button
-{
- name "rxRecipient6"
- area 0 0 100 30
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(6)~=''"
- action "BfBot.PartyUI.SetRecipient(6)"
- bam "BFBTAB"
- sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "BfBot.PartyUI.IsRecipient(6) and 2 or 0"
- scaleToClip
- tooltip lua "BfBot.PartyUI.RecipientName(6)"
-}
-label
-{
- name "rxRecipient6Caption"
- area 0 0 100 30
- text lua "BfBot.PartyUI.RecipientName(6)"
- text style "bvr_button"
- text point 13
- text align left center
- ignoreEvents
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(6)~=''"
- text align center center
-}
-label
-{
- name "rxRecipientPortrait6"
- area 0 0 100 30
- enabled "BfBot.PartyUI.IsDashboard() and BfBot.PartyUI.RecipientName(6)~=''"
- bitmap lua "BfBot.Visual.FilterPortrait(6)"
- scaleToClip
- ignoreEvents
 }
 label
 {
@@ -1093,58 +877,58 @@ list
  }
  column
  {
-  width 9
+  width 7
   label
   {
-   area 0 4 100 36
+   area 0 4 80 36
    enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
    fill 0 0 0 72
   }
   label
   {
-   area 0 4 100 36
+   area 0 4 80 36
    enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
    fill 240 207 122 32
   }
   label
   {
-   area 0 4 100 36
+   area 0 4 80 36
    enabled "BfBot.Visual.ChipError(rowNumber,1)"
    fill 224 83 63 45
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.ChipError(rowNumber,1)"
    fill 224 83 63 230
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.ChipError(rowNumber,1)"
    fill 224 83 63 230
   }
@@ -1163,24 +947,6 @@ list
   label
   {
    area 0 4 1 36
-   enabled "BfBot.Visual.ChipError(rowNumber,1)"
-   fill 224 83 63 230
-  }
-  label
-  {
-   area 99 4 1 36
-   enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
-   fill 255 240 210 20
-  }
-  label
-  {
-   area 99 4 1 36
-   enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
-   fill 240 207 122 190
-  }
-  label
-  {
-   area 99 4 1 36
    enabled "BfBot.Visual.ChipError(rowNumber,1)"
    fill 224 83 63 230
   }
@@ -1208,14 +974,7 @@ list
   }
   label
   {
-   area 22 4 24 36
-   enabled "BfBot.Visual.IsPartyRow(rowNumber)"
-   bitmap lua "BfBot.PartyUI.PartyPortrait(rowNumber,3)"
-   scaleToClip
-  }
-  label
-  {
-   area 28 -2 70 28
+   area 28 -2 50 28
    text lua "BfBot.Visual.ChipName(rowNumber,1)"
    text style "bvr_small"
    text point 12
@@ -1225,7 +984,7 @@ list
   }
   label
   {
-   area 28 14 70 28
+   area 28 14 50 28
    text lua "BfBot.Visual.ChipDuration(rowNumber,1)"
    text style "bvr_small"
    text point 12
@@ -1234,7 +993,7 @@ list
   }
   label
   {
-   area 50 -2 48 28
+   area 37 -2 41 28
    text lua "BfBot.Plan.Text('Party')"
    text style "bvr_small"
    text point 12
@@ -1243,7 +1002,7 @@ list
   }
   label
   {
-   area 50 14 48 28
+   area 37 14 41 28
    text lua "BfBot.Visual.ChipDuration(rowNumber,1)"
    text style "bvr_small"
    text point 12
@@ -1261,7 +1020,7 @@ list
   }
   label
   {
-   area 85 2 13 13
+   area 65 2 13 13
    enabled "BfBot.Visual.ChipError(rowNumber,1)"
    bam "BFBGLYPH"
    sequence lua "BfBot.Visual.Glyph('warning')"
@@ -1276,58 +1035,149 @@ list
  }
  column
  {
-  width 9
+  width 2
   label
   {
-   area 0 4 100 36
+   area 0 4 17 36
+   enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
+   fill 0 0 0 72
+  }
+  label
+  {
+   area 0 4 17 36
+   enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
+   fill 240 207 122 32
+  }
+  label
+  {
+   area 0 4 17 36
+   enabled "BfBot.Visual.ChipError(rowNumber,1)"
+   fill 224 83 63 45
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.ChipError(rowNumber,1)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.ChipError(rowNumber,1)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.ChipError(rowNumber,1)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 6 16 18
+   enabled "BfBot.Visual.Chip(rowNumber,1)~=nil and BfBot.Visual.ChipChecked(rowNumber,1)"
+   bam "BFBACT"
+   sequence 4
+   frame lua "BfBot.Visual.ChipSourceOpen(rowNumber,1) and 1 or 0"
+   scaleToClip
+   tooltip lua "BfBot.Visual.ChipSourceTip(rowNumber,1)"
+  }
+  label
+  {
+   area 0 47 -1 1
+   fill 176 138 74 32
+  }
+ }
+ column
+ {
+  width 7
+  label
+  {
+   area 0 4 80 36
    enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
    fill 0 0 0 72
   }
   label
   {
-   area 0 4 100 36
+   area 0 4 80 36
    enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
    fill 240 207 122 32
   }
   label
   {
-   area 0 4 100 36
+   area 0 4 80 36
    enabled "BfBot.Visual.ChipError(rowNumber,2)"
    fill 224 83 63 45
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.ChipError(rowNumber,2)"
    fill 224 83 63 230
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.ChipError(rowNumber,2)"
    fill 224 83 63 230
   }
@@ -1346,24 +1196,6 @@ list
   label
   {
    area 0 4 1 36
-   enabled "BfBot.Visual.ChipError(rowNumber,2)"
-   fill 224 83 63 230
-  }
-  label
-  {
-   area 99 4 1 36
-   enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
-   fill 255 240 210 20
-  }
-  label
-  {
-   area 99 4 1 36
-   enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
-   fill 240 207 122 190
-  }
-  label
-  {
-   area 99 4 1 36
    enabled "BfBot.Visual.ChipError(rowNumber,2)"
    fill 224 83 63 230
   }
@@ -1377,7 +1209,7 @@ list
   }
   label
   {
-   area 28 -2 70 28
+   area 28 -2 50 28
    text lua "BfBot.Visual.ChipName(rowNumber,2)"
    text style "bvr_small"
    text point 12
@@ -1387,7 +1219,7 @@ list
   }
   label
   {
-   area 28 14 70 28
+   area 28 14 50 28
    text lua "BfBot.Visual.ChipDuration(rowNumber,2)"
    text style "bvr_small"
    text point 12
@@ -1405,7 +1237,7 @@ list
   }
   label
   {
-   area 85 2 13 13
+   area 65 2 13 13
    enabled "BfBot.Visual.ChipError(rowNumber,2)"
    bam "BFBGLYPH"
    sequence lua "BfBot.Visual.Glyph('warning')"
@@ -1420,58 +1252,149 @@ list
  }
  column
  {
-  width 9
+  width 2
   label
   {
-   area 0 4 100 36
+   area 0 4 17 36
+   enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
+   fill 0 0 0 72
+  }
+  label
+  {
+   area 0 4 17 36
+   enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
+   fill 240 207 122 32
+  }
+  label
+  {
+   area 0 4 17 36
+   enabled "BfBot.Visual.ChipError(rowNumber,2)"
+   fill 224 83 63 45
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.ChipError(rowNumber,2)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.ChipError(rowNumber,2)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.ChipError(rowNumber,2)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 6 16 18
+   enabled "BfBot.Visual.Chip(rowNumber,2)~=nil and BfBot.Visual.ChipChecked(rowNumber,2)"
+   bam "BFBACT"
+   sequence 4
+   frame lua "BfBot.Visual.ChipSourceOpen(rowNumber,2) and 1 or 0"
+   scaleToClip
+   tooltip lua "BfBot.Visual.ChipSourceTip(rowNumber,2)"
+  }
+  label
+  {
+   area 0 47 -1 1
+   fill 176 138 74 32
+  }
+ }
+ column
+ {
+  width 7
+  label
+  {
+   area 0 4 80 36
    enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
    fill 0 0 0 72
   }
   label
   {
-   area 0 4 100 36
+   area 0 4 80 36
    enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
    fill 240 207 122 32
   }
   label
   {
-   area 0 4 100 36
+   area 0 4 80 36
    enabled "BfBot.Visual.ChipError(rowNumber,3)"
    fill 224 83 63 45
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.ChipError(rowNumber,3)"
    fill 224 83 63 230
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.ChipError(rowNumber,3)"
    fill 224 83 63 230
   }
@@ -1490,24 +1413,6 @@ list
   label
   {
    area 0 4 1 36
-   enabled "BfBot.Visual.ChipError(rowNumber,3)"
-   fill 224 83 63 230
-  }
-  label
-  {
-   area 99 4 1 36
-   enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
-   fill 255 240 210 20
-  }
-  label
-  {
-   area 99 4 1 36
-   enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
-   fill 240 207 122 190
-  }
-  label
-  {
-   area 99 4 1 36
    enabled "BfBot.Visual.ChipError(rowNumber,3)"
    fill 224 83 63 230
   }
@@ -1521,7 +1426,7 @@ list
   }
   label
   {
-   area 28 -2 70 28
+   area 28 -2 50 28
    text lua "BfBot.Visual.ChipName(rowNumber,3)"
    text style "bvr_small"
    text point 12
@@ -1531,7 +1436,7 @@ list
   }
   label
   {
-   area 28 14 70 28
+   area 28 14 50 28
    text lua "BfBot.Visual.ChipDuration(rowNumber,3)"
    text style "bvr_small"
    text point 12
@@ -1549,7 +1454,7 @@ list
   }
   label
   {
-   area 85 2 13 13
+   area 65 2 13 13
    enabled "BfBot.Visual.ChipError(rowNumber,3)"
    bam "BFBGLYPH"
    sequence lua "BfBot.Visual.Glyph('warning')"
@@ -1564,58 +1469,149 @@ list
  }
  column
  {
-  width 9
+  width 2
   label
   {
-   area 0 4 100 36
+   area 0 4 17 36
+   enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
+   fill 0 0 0 72
+  }
+  label
+  {
+   area 0 4 17 36
+   enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
+   fill 240 207 122 32
+  }
+  label
+  {
+   area 0 4 17 36
+   enabled "BfBot.Visual.ChipError(rowNumber,3)"
+   fill 224 83 63 45
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.ChipError(rowNumber,3)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.ChipError(rowNumber,3)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.ChipError(rowNumber,3)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 6 16 18
+   enabled "BfBot.Visual.Chip(rowNumber,3)~=nil and BfBot.Visual.ChipChecked(rowNumber,3)"
+   bam "BFBACT"
+   sequence 4
+   frame lua "BfBot.Visual.ChipSourceOpen(rowNumber,3) and 1 or 0"
+   scaleToClip
+   tooltip lua "BfBot.Visual.ChipSourceTip(rowNumber,3)"
+  }
+  label
+  {
+   area 0 47 -1 1
+   fill 176 138 74 32
+  }
+ }
+ column
+ {
+  width 7
+  label
+  {
+   area 0 4 80 36
    enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
    fill 0 0 0 72
   }
   label
   {
-   area 0 4 100 36
+   area 0 4 80 36
    enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
    fill 240 207 122 32
   }
   label
   {
-   area 0 4 100 36
+   area 0 4 80 36
    enabled "BfBot.Visual.ChipError(rowNumber,4)"
    fill 224 83 63 45
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.ChipError(rowNumber,4)"
    fill 224 83 63 230
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.ChipError(rowNumber,4)"
    fill 224 83 63 230
   }
@@ -1634,24 +1630,6 @@ list
   label
   {
    area 0 4 1 36
-   enabled "BfBot.Visual.ChipError(rowNumber,4)"
-   fill 224 83 63 230
-  }
-  label
-  {
-   area 99 4 1 36
-   enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
-   fill 255 240 210 20
-  }
-  label
-  {
-   area 99 4 1 36
-   enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
-   fill 240 207 122 190
-  }
-  label
-  {
-   area 99 4 1 36
    enabled "BfBot.Visual.ChipError(rowNumber,4)"
    fill 224 83 63 230
   }
@@ -1665,7 +1643,7 @@ list
   }
   label
   {
-   area 28 -2 70 28
+   area 28 -2 50 28
    text lua "BfBot.Visual.ChipName(rowNumber,4)"
    text style "bvr_small"
    text point 12
@@ -1675,7 +1653,7 @@ list
   }
   label
   {
-   area 28 14 70 28
+   area 28 14 50 28
    text lua "BfBot.Visual.ChipDuration(rowNumber,4)"
    text style "bvr_small"
    text point 12
@@ -1693,7 +1671,7 @@ list
   }
   label
   {
-   area 85 2 13 13
+   area 65 2 13 13
    enabled "BfBot.Visual.ChipError(rowNumber,4)"
    bam "BFBGLYPH"
    sequence lua "BfBot.Visual.Glyph('warning')"
@@ -1708,58 +1686,149 @@ list
  }
  column
  {
-  width 9
+  width 2
   label
   {
-   area 0 4 100 36
+   area 0 4 17 36
+   enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
+   fill 0 0 0 72
+  }
+  label
+  {
+   area 0 4 17 36
+   enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
+   fill 240 207 122 32
+  }
+  label
+  {
+   area 0 4 17 36
+   enabled "BfBot.Visual.ChipError(rowNumber,4)"
+   fill 224 83 63 45
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.ChipError(rowNumber,4)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.ChipError(rowNumber,4)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.ChipError(rowNumber,4)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 6 16 18
+   enabled "BfBot.Visual.Chip(rowNumber,4)~=nil and BfBot.Visual.ChipChecked(rowNumber,4)"
+   bam "BFBACT"
+   sequence 4
+   frame lua "BfBot.Visual.ChipSourceOpen(rowNumber,4) and 1 or 0"
+   scaleToClip
+   tooltip lua "BfBot.Visual.ChipSourceTip(rowNumber,4)"
+  }
+  label
+  {
+   area 0 47 -1 1
+   fill 176 138 74 32
+  }
+ }
+ column
+ {
+  width 7
+  label
+  {
+   area 0 4 80 36
    enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
    fill 0 0 0 72
   }
   label
   {
-   area 0 4 100 36
+   area 0 4 80 36
    enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
    fill 240 207 122 32
   }
   label
   {
-   area 0 4 100 36
+   area 0 4 80 36
    enabled "BfBot.Visual.ChipError(rowNumber,5)"
    fill 224 83 63 45
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.ChipError(rowNumber,5)"
    fill 224 83 63 230
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.ChipError(rowNumber,5)"
    fill 224 83 63 230
   }
@@ -1778,24 +1847,6 @@ list
   label
   {
    area 0 4 1 36
-   enabled "BfBot.Visual.ChipError(rowNumber,5)"
-   fill 224 83 63 230
-  }
-  label
-  {
-   area 99 4 1 36
-   enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
-   fill 255 240 210 20
-  }
-  label
-  {
-   area 99 4 1 36
-   enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
-   fill 240 207 122 190
-  }
-  label
-  {
-   area 99 4 1 36
    enabled "BfBot.Visual.ChipError(rowNumber,5)"
    fill 224 83 63 230
   }
@@ -1809,7 +1860,7 @@ list
   }
   label
   {
-   area 28 -2 70 28
+   area 28 -2 50 28
    text lua "BfBot.Visual.ChipName(rowNumber,5)"
    text style "bvr_small"
    text point 12
@@ -1819,7 +1870,7 @@ list
   }
   label
   {
-   area 28 14 70 28
+   area 28 14 50 28
    text lua "BfBot.Visual.ChipDuration(rowNumber,5)"
    text style "bvr_small"
    text point 12
@@ -1837,7 +1888,7 @@ list
   }
   label
   {
-   area 85 2 13 13
+   area 65 2 13 13
    enabled "BfBot.Visual.ChipError(rowNumber,5)"
    bam "BFBGLYPH"
    sequence lua "BfBot.Visual.Glyph('warning')"
@@ -1852,58 +1903,149 @@ list
  }
  column
  {
-  width 9
+  width 2
   label
   {
-   area 0 4 100 36
+   area 0 4 17 36
+   enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
+   fill 0 0 0 72
+  }
+  label
+  {
+   area 0 4 17 36
+   enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
+   fill 240 207 122 32
+  }
+  label
+  {
+   area 0 4 17 36
+   enabled "BfBot.Visual.ChipError(rowNumber,5)"
+   fill 224 83 63 45
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.ChipError(rowNumber,5)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.ChipError(rowNumber,5)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.ChipError(rowNumber,5)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 6 16 18
+   enabled "BfBot.Visual.Chip(rowNumber,5)~=nil and BfBot.Visual.ChipChecked(rowNumber,5)"
+   bam "BFBACT"
+   sequence 4
+   frame lua "BfBot.Visual.ChipSourceOpen(rowNumber,5) and 1 or 0"
+   scaleToClip
+   tooltip lua "BfBot.Visual.ChipSourceTip(rowNumber,5)"
+  }
+  label
+  {
+   area 0 47 -1 1
+   fill 176 138 74 32
+  }
+ }
+ column
+ {
+  width 7
+  label
+  {
+   area 0 4 80 36
    enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
    fill 0 0 0 72
   }
   label
   {
-   area 0 4 100 36
+   area 0 4 80 36
    enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
    fill 240 207 122 32
   }
   label
   {
-   area 0 4 100 36
+   area 0 4 80 36
    enabled "BfBot.Visual.ChipError(rowNumber,6)"
    fill 224 83 63 45
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 4 100 1
+   area 0 4 80 1
    enabled "BfBot.Visual.ChipError(rowNumber,6)"
    fill 224 83 63 230
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 39 100 1
+   area 0 39 80 1
    enabled "BfBot.Visual.ChipError(rowNumber,6)"
    fill 224 83 63 230
   }
@@ -1922,24 +2064,6 @@ list
   label
   {
    area 0 4 1 36
-   enabled "BfBot.Visual.ChipError(rowNumber,6)"
-   fill 224 83 63 230
-  }
-  label
-  {
-   area 99 4 1 36
-   enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
-   fill 255 240 210 20
-  }
-  label
-  {
-   area 99 4 1 36
-   enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
-   fill 240 207 122 190
-  }
-  label
-  {
-   area 99 4 1 36
    enabled "BfBot.Visual.ChipError(rowNumber,6)"
    fill 224 83 63 230
   }
@@ -1953,7 +2077,7 @@ list
   }
   label
   {
-   area 28 -2 70 28
+   area 28 -2 50 28
    text lua "BfBot.Visual.ChipName(rowNumber,6)"
    text style "bvr_small"
    text point 12
@@ -1963,7 +2087,7 @@ list
   }
   label
   {
-   area 28 14 70 28
+   area 28 14 50 28
    text lua "BfBot.Visual.ChipDuration(rowNumber,6)"
    text style "bvr_small"
    text point 12
@@ -1981,12 +2105,103 @@ list
   }
   label
   {
-   area 85 2 13 13
+   area 65 2 13 13
    enabled "BfBot.Visual.ChipError(rowNumber,6)"
    bam "BFBGLYPH"
    sequence lua "BfBot.Visual.Glyph('warning')"
    frame 0
    scaleToClip
+  }
+  label
+  {
+   area 0 47 -1 1
+   fill 176 138 74 32
+  }
+ }
+ column
+ {
+  width 2
+  label
+  {
+   area 0 4 17 36
+   enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
+   fill 0 0 0 72
+  }
+  label
+  {
+   area 0 4 17 36
+   enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
+   fill 240 207 122 32
+  }
+  label
+  {
+   area 0 4 17 36
+   enabled "BfBot.Visual.ChipError(rowNumber,6)"
+   fill 224 83 63 45
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 4 17 1
+   enabled "BfBot.Visual.ChipError(rowNumber,6)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 39 17 1
+   enabled "BfBot.Visual.ChipError(rowNumber,6)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 16 4 1 36
+   enabled "BfBot.Visual.ChipError(rowNumber,6)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 6 16 18
+   enabled "BfBot.Visual.Chip(rowNumber,6)~=nil and BfBot.Visual.ChipChecked(rowNumber,6)"
+   bam "BFBACT"
+   sequence 4
+   frame lua "BfBot.Visual.ChipSourceOpen(rowNumber,6) and 1 or 0"
+   scaleToClip
+   tooltip lua "BfBot.Visual.ChipSourceTip(rowNumber,6)"
   }
   label
   {
@@ -2025,7 +2240,7 @@ list
  name "rxDashboard"
  table "bbPartyRows"
  var "bbPartyRowSelection"
- action "BfBot.PartyUI.DashboardClick(cellNumber)"
+ action "BfBot.Visual.DashboardClick(cellNumber)"
  enabled "BfBot.PartyUI.IsDashboard() and not BfBot.Visual.wide"
  rowheight 48
  scrollbar "BFBSCRL"
@@ -2149,58 +2364,58 @@ list
  }
  column
  {
-  width 10
+  width 8
   label
   {
-   area 0 4 168 40
+   area 0 4 143 40
    enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
    fill 0 0 0 72
   }
   label
   {
-   area 0 4 168 40
+   area 0 4 143 40
    enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
    fill 240 207 122 32
   }
   label
   {
-   area 0 4 168 40
+   area 0 4 143 40
    enabled "BfBot.Visual.ChipError(rowNumber,1)"
    fill 224 83 63 45
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.ChipError(rowNumber,1)"
    fill 224 83 63 230
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.ChipError(rowNumber,1)"
    fill 224 83 63 230
   }
@@ -2219,24 +2434,6 @@ list
   label
   {
    area 0 4 1 40
-   enabled "BfBot.Visual.ChipError(rowNumber,1)"
-   fill 224 83 63 230
-  }
-  label
-  {
-   area 167 4 1 40
-   enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
-   fill 255 240 210 20
-  }
-  label
-  {
-   area 167 4 1 40
-   enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
-   fill 240 207 122 190
-  }
-  label
-  {
-   area 167 4 1 40
    enabled "BfBot.Visual.ChipError(rowNumber,1)"
    fill 224 83 63 230
   }
@@ -2271,7 +2468,7 @@ list
   }
   label
   {
-   area 34 -1 132 30
+   area 34 -1 107 30
    text lua "BfBot.Visual.ChipName(rowNumber,1)"
    text style "bvr_chipwide"
    text point 14
@@ -2281,7 +2478,7 @@ list
   }
   label
   {
-   area 34 17 132 30
+   area 34 17 107 30
    text lua "BfBot.Visual.ChipDuration(rowNumber,1)"
    text style "bvr_chipwide"
    text point 14
@@ -2290,7 +2487,7 @@ list
   }
   label
   {
-   area 56 -1 110 30
+   area 56 -1 85 30
    text lua "BfBot.Plan.Text('Party')"
    text style "bvr_chipwide"
    text point 14
@@ -2299,7 +2496,7 @@ list
   }
   label
   {
-   area 56 17 110 30
+   area 56 17 85 30
    text lua "BfBot.Visual.ChipDuration(rowNumber,1)"
    text style "bvr_chipwide"
    text point 14
@@ -2317,7 +2514,7 @@ list
   }
   label
   {
-   area 153 2 13 13
+   area 128 2 13 13
    enabled "BfBot.Visual.ChipError(rowNumber,1)"
    bam "BFBGLYPH"
    sequence lua "BfBot.Visual.Glyph('warning')"
@@ -2332,58 +2529,149 @@ list
  }
  column
  {
-  width 10
+  width 2
   label
   {
-   area 0 4 168 40
+   area 0 4 29 40
+   enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
+   fill 0 0 0 72
+  }
+  label
+  {
+   area 0 4 29 40
+   enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
+   fill 240 207 122 32
+  }
+  label
+  {
+   area 0 4 29 40
+   enabled "BfBot.Visual.ChipError(rowNumber,1)"
+   fill 224 83 63 45
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.ChipError(rowNumber,1)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.ChipError(rowNumber,1)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.Chip(rowNumber,1)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.ChipChecked(rowNumber,1)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.ChipError(rowNumber,1)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 6 6 16 18
+   enabled "BfBot.Visual.Chip(rowNumber,1)~=nil and BfBot.Visual.ChipChecked(rowNumber,1)"
+   bam "BFBACT"
+   sequence 4
+   frame lua "BfBot.Visual.ChipSourceOpen(rowNumber,1) and 1 or 0"
+   scaleToClip
+   tooltip lua "BfBot.Visual.ChipSourceTip(rowNumber,1)"
+  }
+  label
+  {
+   area 0 53 -1 1
+   fill 176 138 74 32
+  }
+ }
+ column
+ {
+  width 8
+  label
+  {
+   area 0 4 143 40
    enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
    fill 0 0 0 72
   }
   label
   {
-   area 0 4 168 40
+   area 0 4 143 40
    enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
    fill 240 207 122 32
   }
   label
   {
-   area 0 4 168 40
+   area 0 4 143 40
    enabled "BfBot.Visual.ChipError(rowNumber,2)"
    fill 224 83 63 45
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.ChipError(rowNumber,2)"
    fill 224 83 63 230
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.ChipError(rowNumber,2)"
    fill 224 83 63 230
   }
@@ -2402,24 +2690,6 @@ list
   label
   {
    area 0 4 1 40
-   enabled "BfBot.Visual.ChipError(rowNumber,2)"
-   fill 224 83 63 230
-  }
-  label
-  {
-   area 167 4 1 40
-   enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
-   fill 255 240 210 20
-  }
-  label
-  {
-   area 167 4 1 40
-   enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
-   fill 240 207 122 190
-  }
-  label
-  {
-   area 167 4 1 40
    enabled "BfBot.Visual.ChipError(rowNumber,2)"
    fill 224 83 63 230
   }
@@ -2433,7 +2703,7 @@ list
   }
   label
   {
-   area 34 -1 132 30
+   area 34 -1 107 30
    text lua "BfBot.Visual.ChipName(rowNumber,2)"
    text style "bvr_chipwide"
    text point 14
@@ -2443,7 +2713,7 @@ list
   }
   label
   {
-   area 34 17 132 30
+   area 34 17 107 30
    text lua "BfBot.Visual.ChipDuration(rowNumber,2)"
    text style "bvr_chipwide"
    text point 14
@@ -2461,7 +2731,7 @@ list
   }
   label
   {
-   area 153 2 13 13
+   area 128 2 13 13
    enabled "BfBot.Visual.ChipError(rowNumber,2)"
    bam "BFBGLYPH"
    sequence lua "BfBot.Visual.Glyph('warning')"
@@ -2476,58 +2746,149 @@ list
  }
  column
  {
-  width 10
+  width 2
   label
   {
-   area 0 4 168 40
+   area 0 4 29 40
+   enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
+   fill 0 0 0 72
+  }
+  label
+  {
+   area 0 4 29 40
+   enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
+   fill 240 207 122 32
+  }
+  label
+  {
+   area 0 4 29 40
+   enabled "BfBot.Visual.ChipError(rowNumber,2)"
+   fill 224 83 63 45
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.ChipError(rowNumber,2)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.ChipError(rowNumber,2)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.Chip(rowNumber,2)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.ChipChecked(rowNumber,2)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.ChipError(rowNumber,2)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 6 6 16 18
+   enabled "BfBot.Visual.Chip(rowNumber,2)~=nil and BfBot.Visual.ChipChecked(rowNumber,2)"
+   bam "BFBACT"
+   sequence 4
+   frame lua "BfBot.Visual.ChipSourceOpen(rowNumber,2) and 1 or 0"
+   scaleToClip
+   tooltip lua "BfBot.Visual.ChipSourceTip(rowNumber,2)"
+  }
+  label
+  {
+   area 0 53 -1 1
+   fill 176 138 74 32
+  }
+ }
+ column
+ {
+  width 8
+  label
+  {
+   area 0 4 143 40
    enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
    fill 0 0 0 72
   }
   label
   {
-   area 0 4 168 40
+   area 0 4 143 40
    enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
    fill 240 207 122 32
   }
   label
   {
-   area 0 4 168 40
+   area 0 4 143 40
    enabled "BfBot.Visual.ChipError(rowNumber,3)"
    fill 224 83 63 45
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.ChipError(rowNumber,3)"
    fill 224 83 63 230
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.ChipError(rowNumber,3)"
    fill 224 83 63 230
   }
@@ -2546,24 +2907,6 @@ list
   label
   {
    area 0 4 1 40
-   enabled "BfBot.Visual.ChipError(rowNumber,3)"
-   fill 224 83 63 230
-  }
-  label
-  {
-   area 167 4 1 40
-   enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
-   fill 255 240 210 20
-  }
-  label
-  {
-   area 167 4 1 40
-   enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
-   fill 240 207 122 190
-  }
-  label
-  {
-   area 167 4 1 40
    enabled "BfBot.Visual.ChipError(rowNumber,3)"
    fill 224 83 63 230
   }
@@ -2577,7 +2920,7 @@ list
   }
   label
   {
-   area 34 -1 132 30
+   area 34 -1 107 30
    text lua "BfBot.Visual.ChipName(rowNumber,3)"
    text style "bvr_chipwide"
    text point 14
@@ -2587,7 +2930,7 @@ list
   }
   label
   {
-   area 34 17 132 30
+   area 34 17 107 30
    text lua "BfBot.Visual.ChipDuration(rowNumber,3)"
    text style "bvr_chipwide"
    text point 14
@@ -2605,7 +2948,7 @@ list
   }
   label
   {
-   area 153 2 13 13
+   area 128 2 13 13
    enabled "BfBot.Visual.ChipError(rowNumber,3)"
    bam "BFBGLYPH"
    sequence lua "BfBot.Visual.Glyph('warning')"
@@ -2620,58 +2963,149 @@ list
  }
  column
  {
-  width 10
+  width 2
   label
   {
-   area 0 4 168 40
+   area 0 4 29 40
+   enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
+   fill 0 0 0 72
+  }
+  label
+  {
+   area 0 4 29 40
+   enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
+   fill 240 207 122 32
+  }
+  label
+  {
+   area 0 4 29 40
+   enabled "BfBot.Visual.ChipError(rowNumber,3)"
+   fill 224 83 63 45
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.ChipError(rowNumber,3)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.ChipError(rowNumber,3)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.Chip(rowNumber,3)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.ChipChecked(rowNumber,3)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.ChipError(rowNumber,3)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 6 6 16 18
+   enabled "BfBot.Visual.Chip(rowNumber,3)~=nil and BfBot.Visual.ChipChecked(rowNumber,3)"
+   bam "BFBACT"
+   sequence 4
+   frame lua "BfBot.Visual.ChipSourceOpen(rowNumber,3) and 1 or 0"
+   scaleToClip
+   tooltip lua "BfBot.Visual.ChipSourceTip(rowNumber,3)"
+  }
+  label
+  {
+   area 0 53 -1 1
+   fill 176 138 74 32
+  }
+ }
+ column
+ {
+  width 8
+  label
+  {
+   area 0 4 143 40
    enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
    fill 0 0 0 72
   }
   label
   {
-   area 0 4 168 40
+   area 0 4 143 40
    enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
    fill 240 207 122 32
   }
   label
   {
-   area 0 4 168 40
+   area 0 4 143 40
    enabled "BfBot.Visual.ChipError(rowNumber,4)"
    fill 224 83 63 45
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.ChipError(rowNumber,4)"
    fill 224 83 63 230
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.ChipError(rowNumber,4)"
    fill 224 83 63 230
   }
@@ -2690,24 +3124,6 @@ list
   label
   {
    area 0 4 1 40
-   enabled "BfBot.Visual.ChipError(rowNumber,4)"
-   fill 224 83 63 230
-  }
-  label
-  {
-   area 167 4 1 40
-   enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
-   fill 255 240 210 20
-  }
-  label
-  {
-   area 167 4 1 40
-   enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
-   fill 240 207 122 190
-  }
-  label
-  {
-   area 167 4 1 40
    enabled "BfBot.Visual.ChipError(rowNumber,4)"
    fill 224 83 63 230
   }
@@ -2721,7 +3137,7 @@ list
   }
   label
   {
-   area 34 -1 132 30
+   area 34 -1 107 30
    text lua "BfBot.Visual.ChipName(rowNumber,4)"
    text style "bvr_chipwide"
    text point 14
@@ -2731,7 +3147,7 @@ list
   }
   label
   {
-   area 34 17 132 30
+   area 34 17 107 30
    text lua "BfBot.Visual.ChipDuration(rowNumber,4)"
    text style "bvr_chipwide"
    text point 14
@@ -2749,7 +3165,7 @@ list
   }
   label
   {
-   area 153 2 13 13
+   area 128 2 13 13
    enabled "BfBot.Visual.ChipError(rowNumber,4)"
    bam "BFBGLYPH"
    sequence lua "BfBot.Visual.Glyph('warning')"
@@ -2764,58 +3180,149 @@ list
  }
  column
  {
-  width 10
+  width 2
   label
   {
-   area 0 4 168 40
+   area 0 4 29 40
+   enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
+   fill 0 0 0 72
+  }
+  label
+  {
+   area 0 4 29 40
+   enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
+   fill 240 207 122 32
+  }
+  label
+  {
+   area 0 4 29 40
+   enabled "BfBot.Visual.ChipError(rowNumber,4)"
+   fill 224 83 63 45
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.ChipError(rowNumber,4)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.ChipError(rowNumber,4)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.Chip(rowNumber,4)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.ChipChecked(rowNumber,4)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.ChipError(rowNumber,4)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 6 6 16 18
+   enabled "BfBot.Visual.Chip(rowNumber,4)~=nil and BfBot.Visual.ChipChecked(rowNumber,4)"
+   bam "BFBACT"
+   sequence 4
+   frame lua "BfBot.Visual.ChipSourceOpen(rowNumber,4) and 1 or 0"
+   scaleToClip
+   tooltip lua "BfBot.Visual.ChipSourceTip(rowNumber,4)"
+  }
+  label
+  {
+   area 0 53 -1 1
+   fill 176 138 74 32
+  }
+ }
+ column
+ {
+  width 8
+  label
+  {
+   area 0 4 143 40
    enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
    fill 0 0 0 72
   }
   label
   {
-   area 0 4 168 40
+   area 0 4 143 40
    enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
    fill 240 207 122 32
   }
   label
   {
-   area 0 4 168 40
+   area 0 4 143 40
    enabled "BfBot.Visual.ChipError(rowNumber,5)"
    fill 224 83 63 45
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.ChipError(rowNumber,5)"
    fill 224 83 63 230
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.ChipError(rowNumber,5)"
    fill 224 83 63 230
   }
@@ -2834,24 +3341,6 @@ list
   label
   {
    area 0 4 1 40
-   enabled "BfBot.Visual.ChipError(rowNumber,5)"
-   fill 224 83 63 230
-  }
-  label
-  {
-   area 167 4 1 40
-   enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
-   fill 255 240 210 20
-  }
-  label
-  {
-   area 167 4 1 40
-   enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
-   fill 240 207 122 190
-  }
-  label
-  {
-   area 167 4 1 40
    enabled "BfBot.Visual.ChipError(rowNumber,5)"
    fill 224 83 63 230
   }
@@ -2865,7 +3354,7 @@ list
   }
   label
   {
-   area 34 -1 132 30
+   area 34 -1 107 30
    text lua "BfBot.Visual.ChipName(rowNumber,5)"
    text style "bvr_chipwide"
    text point 14
@@ -2875,7 +3364,7 @@ list
   }
   label
   {
-   area 34 17 132 30
+   area 34 17 107 30
    text lua "BfBot.Visual.ChipDuration(rowNumber,5)"
    text style "bvr_chipwide"
    text point 14
@@ -2893,7 +3382,7 @@ list
   }
   label
   {
-   area 153 2 13 13
+   area 128 2 13 13
    enabled "BfBot.Visual.ChipError(rowNumber,5)"
    bam "BFBGLYPH"
    sequence lua "BfBot.Visual.Glyph('warning')"
@@ -2908,58 +3397,149 @@ list
  }
  column
  {
-  width 10
+  width 2
   label
   {
-   area 0 4 168 40
+   area 0 4 29 40
+   enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
+   fill 0 0 0 72
+  }
+  label
+  {
+   area 0 4 29 40
+   enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
+   fill 240 207 122 32
+  }
+  label
+  {
+   area 0 4 29 40
+   enabled "BfBot.Visual.ChipError(rowNumber,5)"
+   fill 224 83 63 45
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.ChipError(rowNumber,5)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.ChipError(rowNumber,5)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.Chip(rowNumber,5)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.ChipChecked(rowNumber,5)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.ChipError(rowNumber,5)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 6 6 16 18
+   enabled "BfBot.Visual.Chip(rowNumber,5)~=nil and BfBot.Visual.ChipChecked(rowNumber,5)"
+   bam "BFBACT"
+   sequence 4
+   frame lua "BfBot.Visual.ChipSourceOpen(rowNumber,5) and 1 or 0"
+   scaleToClip
+   tooltip lua "BfBot.Visual.ChipSourceTip(rowNumber,5)"
+  }
+  label
+  {
+   area 0 53 -1 1
+   fill 176 138 74 32
+  }
+ }
+ column
+ {
+  width 8
+  label
+  {
+   area 0 4 143 40
    enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
    fill 0 0 0 72
   }
   label
   {
-   area 0 4 168 40
+   area 0 4 143 40
    enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
    fill 240 207 122 32
   }
   label
   {
-   area 0 4 168 40
+   area 0 4 143 40
    enabled "BfBot.Visual.ChipError(rowNumber,6)"
    fill 224 83 63 45
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 4 168 1
+   area 0 4 143 1
    enabled "BfBot.Visual.ChipError(rowNumber,6)"
    fill 224 83 63 230
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
    fill 255 240 210 20
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
    fill 240 207 122 190
   }
   label
   {
-   area 0 43 168 1
+   area 0 43 143 1
    enabled "BfBot.Visual.ChipError(rowNumber,6)"
    fill 224 83 63 230
   }
@@ -2978,24 +3558,6 @@ list
   label
   {
    area 0 4 1 40
-   enabled "BfBot.Visual.ChipError(rowNumber,6)"
-   fill 224 83 63 230
-  }
-  label
-  {
-   area 167 4 1 40
-   enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
-   fill 255 240 210 20
-  }
-  label
-  {
-   area 167 4 1 40
-   enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
-   fill 240 207 122 190
-  }
-  label
-  {
-   area 167 4 1 40
    enabled "BfBot.Visual.ChipError(rowNumber,6)"
    fill 224 83 63 230
   }
@@ -3009,7 +3571,7 @@ list
   }
   label
   {
-   area 34 -1 132 30
+   area 34 -1 107 30
    text lua "BfBot.Visual.ChipName(rowNumber,6)"
    text style "bvr_chipwide"
    text point 14
@@ -3019,7 +3581,7 @@ list
   }
   label
   {
-   area 34 17 132 30
+   area 34 17 107 30
    text lua "BfBot.Visual.ChipDuration(rowNumber,6)"
    text style "bvr_chipwide"
    text point 14
@@ -3037,12 +3599,103 @@ list
   }
   label
   {
-   area 153 2 13 13
+   area 128 2 13 13
    enabled "BfBot.Visual.ChipError(rowNumber,6)"
    bam "BFBGLYPH"
    sequence lua "BfBot.Visual.Glyph('warning')"
    frame 0
    scaleToClip
+  }
+  label
+  {
+   area 0 53 -1 1
+   fill 176 138 74 32
+  }
+ }
+ column
+ {
+  width 2
+  label
+  {
+   area 0 4 29 40
+   enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
+   fill 0 0 0 72
+  }
+  label
+  {
+   area 0 4 29 40
+   enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
+   fill 240 207 122 32
+  }
+  label
+  {
+   area 0 4 29 40
+   enabled "BfBot.Visual.ChipError(rowNumber,6)"
+   fill 224 83 63 45
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 4 29 1
+   enabled "BfBot.Visual.ChipError(rowNumber,6)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 0 43 29 1
+   enabled "BfBot.Visual.ChipError(rowNumber,6)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.Chip(rowNumber,6)~=nil"
+   fill 255 240 210 20
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.ChipChecked(rowNumber,6)"
+   fill 240 207 122 190
+  }
+  label
+  {
+   area 28 4 1 40
+   enabled "BfBot.Visual.ChipError(rowNumber,6)"
+   fill 224 83 63 230
+  }
+  label
+  {
+   area 6 6 16 18
+   enabled "BfBot.Visual.Chip(rowNumber,6)~=nil and BfBot.Visual.ChipChecked(rowNumber,6)"
+   bam "BFBACT"
+   sequence 4
+   frame lua "BfBot.Visual.ChipSourceOpen(rowNumber,6) and 1 or 0"
+   scaleToClip
+   tooltip lua "BfBot.Visual.ChipSourceTip(rowNumber,6)"
   }
   label
   {
@@ -3081,7 +3734,7 @@ list
  name "rxDashboardWide"
  table "bbPartyRows"
  var "bbPartyRowSelection"
- action "BfBot.PartyUI.DashboardClick(cellNumber)"
+ action "BfBot.Visual.DashboardClick(cellNumber)"
  enabled "BfBot.PartyUI.IsDashboard() and BfBot.Visual.wide"
  rowheight 54
  scrollbar "BFBSCRL"
@@ -3528,7 +4181,7 @@ button
  action "BfBot.PartyUI.SortOrder('smart')"
  bam lua "BfBot.PartyUI.IsOrderMode('smart') and 'BFBTAB' or 'BFBPLAT'"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "BfBot.PartyUI.IsOrderMode('smart') and 2 or 0"
+ frame lua "BfBot.Visual.ButtonFrame('rxOrderSmart',(BfBot.PartyUI.IsOrderMode('smart') and 2 or 0),2)"
  scaleToClip
  greyscale lua "not BfBot.PartyUI.CanSortOrder()"
  tooltip lua "BfBot.Plan.Text('Long first, with casting times considered to maximize buff duration.')"
@@ -3553,7 +4206,7 @@ button
  action "BfBot.PartyUI.SortOrder('long')"
  bam lua "BfBot.PartyUI.IsOrderMode('long') and 'BFBTAB' or 'BFBPLAT'"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "BfBot.PartyUI.IsOrderMode('long') and 2 or 0"
+ frame lua "BfBot.Visual.ButtonFrame('rxOrderLong',(BfBot.PartyUI.IsOrderMode('long') and 2 or 0),2)"
  scaleToClip
  greyscale lua "not BfBot.PartyUI.CanSortOrder()"
  tooltip lua "BfBot.Plan.Text('Longest-lasting buffs first.')"
@@ -3578,7 +4231,7 @@ button
  action "BfBot.PartyUI.SortOrder('custom')"
  bam lua "BfBot.PartyUI.IsOrderMode('custom') and 'BFBTAB' or 'BFBPLAT'"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "BfBot.PartyUI.IsOrderMode('custom') and 2 or 0"
+ frame lua "BfBot.Visual.ButtonFrame('rxOrderCustom',(BfBot.PartyUI.IsOrderMode('custom') and 2 or 0),2)"
  scaleToClip
  greyscale lua "not BfBot.PartyUI.CanSortOrder()"
  tooltip lua "BfBot.Plan.Text('Restore your saved manual order. Moving a buff selects Custom.')"
@@ -3603,7 +4256,7 @@ button
  action "BfBot.PartyUI.UndoOrder()"
  bam "BFBPLAT"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "0"
+ frame lua "BfBot.Visual.ButtonFrame('rxOrderUndo',(0),2)"
  scaleToClip
  greyscale lua "not BfBot.PartyUI.CanUndoOrder()"
  tooltip lua "BfBot.Plan.Text('Restore the order before the last sort.')"
@@ -4412,7 +5065,7 @@ button
  action "BfBot.Visual.EmptyAction()"
  bam "BFBPLAT"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "0"
+ frame lua "BfBot.Visual.ButtonFrame('rxEmptyAction',(0),2)"
  scaleToClip
 }
 label
@@ -4435,7 +5088,7 @@ button
  action "BfBot.Visual.ToggleChoices('rest')"
  bam "BFBPLAT"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "0"
+ frame lua "BfBot.Visual.ButtonFrame('rxRest',(0),2)"
  scaleToClip
 }
 label
@@ -4483,8 +5136,8 @@ label
  name "rxFeedback"
  area 0 0 100 30
  text lua "bbPartyFeedback"
- text style "bvr_small"
- text point 12
+ text style "bvr_feedback"
+ text point 16
  text align left center
  ignoreEvents
 }
@@ -4496,7 +5149,7 @@ button
  action "BfBot.PartyUI.OpenChoices('add')"
  bam "BFBPLAT"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "0"
+ frame lua "BfBot.Visual.ButtonFrame('rxAdd',(0),2)"
  scaleToClip
 }
 label
@@ -4519,7 +5172,7 @@ button
  action "BfBot.PartyUI.OpenChoices('hidden')"
  bam "BFBPLAT"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "0"
+ frame lua "BfBot.Visual.ButtonFrame('rxHidden',(0),2)"
  scaleToClip
 }
 label
@@ -4542,7 +5195,7 @@ button
  action "BfBot.PartyUI.Cast()"
  bam "BFBCAST"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "0"
+ frame lua "BfBot.Visual.ButtonFrame('rxCast',(0),2)"
  scaleToClip
 }
 label
@@ -4565,7 +5218,7 @@ button
  action "BfBot.Visual.Stop()"
  bam "BFBCAST"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "2"
+ frame lua "BfBot.Visual.ButtonFrame('rxStop',(2),2)"
  scaleToClip
 }
 label
@@ -4679,6 +5332,12 @@ button
  name "rxMenuTrigger"
  area 0 0 100 30
  action "BfBot.Visual.ClosePopup()"
+}
+button
+{
+ name "rxMenuHudTrigger"
+ area 0 0 100 30
+ action "BfBot.Visual.Close()"
 }
 label
 {
@@ -5020,7 +5679,7 @@ button
  action "BfBot.Visual.ClosePopup()"
  bam "BFBPLAT"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "0"
+ frame lua "BfBot.Visual.ButtonFrame('rxDeleteCancel',(0),2)"
  scaleToClip
 }
 label
@@ -5043,7 +5702,7 @@ button
  action "if BfBot.PartyUI.CanDeletePreset() then BfBot.PartyUI.DeletePreset() end"
  bam "BFBPLAT"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "BfBot.PartyUI.CanDeletePreset() and 2 or 3"
+ frame lua "BfBot.Visual.ButtonFrame('rxDeleteConfirm',(BfBot.PartyUI.CanDeletePreset() and 2 or 3),2)"
  scaleToClip
 }
 label
@@ -5111,7 +5770,7 @@ button
  action "BfBot.Visual.ClosePopup()"
  bam "BFBPLAT"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "0"
+ frame lua "BfBot.Visual.ButtonFrame('rxNameCancel',(0),2)"
  scaleToClip
 }
 label
@@ -5134,7 +5793,7 @@ button
  action "BfBot.PartyUI.SaveName()"
  bam "BFBPLAT"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "2"
+ frame lua "BfBot.Visual.ButtonFrame('rxNameSave',(2),2)"
  scaleToClip
 }
 label
@@ -5309,7 +5968,7 @@ button
  action "BfBot.Visual.HideSource()"
  bam "BFBACT"
  sequence lua "3"
- frame lua "0"
+ frame lua "BfBot.Visual.ButtonFrame('rxSourceHide',(0),1)"
  scaleToClip
 }
 button
@@ -5387,7 +6046,7 @@ list
   label
   {
    area 4 8 90 28
-   text lua "BfBot.Plan.Text(BfBot.PartyUI.choiceMode=='planImport' and 'Import' or BfBot.PartyUI.choiceMode=='add' and 'Add' or (BfBot.PartyUI.choiceMode=='casting' or BfBot.PartyUI.choiceMode=='theme') and 'Select' or BfBot.PartyUI.choiceMode=='innateRecipients' and (bbPartyChoices[rowNumber].name:sub(1,3)=='[x]' and 'Remove' or 'Add') or 'Restore')"
+   text lua "BfBot.Plan.Text(BfBot.PartyUI.choiceMode=='planImport' and 'Import' or BfBot.PartyUI.choiceMode=='add' and 'Add' or (BfBot.PartyUI.choiceMode=='casting' or BfBot.PartyUI.choiceMode=='theme' or BfBot.PartyUI.choiceMode=='activeBuffs') and 'Select' or BfBot.PartyUI.choiceMode=='innateRecipients' and (bbPartyChoices[rowNumber].name:sub(1,3)=='[x]' and 'Remove' or 'Add') or 'Restore')"
    text style "bvr_button"
    text point 13
    text align left center
@@ -5403,7 +6062,7 @@ list
  table "bbPartyChoices"
  var "bbPartyChoiceSelection"
  action "if cellNumber==3 then BfBot.PartyUI.Choose() end"
- enabled "not BfBot.Visual.rename and (BfBot.PartyUI.choiceMode=='add' or BfBot.PartyUI.choiceMode=='hidden' or BfBot.PartyUI.choiceMode=='planImport' or BfBot.PartyUI.choiceMode=='innateRecipients' or BfBot.PartyUI.choiceMode=='casting' or BfBot.PartyUI.choiceMode=='theme')"
+ enabled "not BfBot.Visual.rename and (BfBot.PartyUI.choiceMode=='add' or BfBot.PartyUI.choiceMode=='hidden' or BfBot.PartyUI.choiceMode=='planImport' or BfBot.PartyUI.choiceMode=='innateRecipients' or BfBot.PartyUI.choiceMode=='casting' or BfBot.PartyUI.choiceMode=='theme' or BfBot.PartyUI.choiceMode=='activeBuffs')"
  rowheight 44
  scrollbar "BFBSCRL"
  hidehighlight
@@ -5450,7 +6109,7 @@ button
  action "BfBot.Visual.ClosePopup()"
  bam "BFBPLAT"
  sequence lua "BfBot.Visual.SkinIndex()"
- frame lua "0"
+ frame lua "BfBot.Visual.ButtonFrame('rxDialogDone',(0),2)"
  scaleToClip
 }
 label

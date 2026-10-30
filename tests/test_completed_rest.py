@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def lua():
     runtime = LuaRuntime(unpack_returned_tuples=True)
     runtime.execute("BfBot={Persist={}}")
-    for name in ("BfBotPln.lua", "BfBotRst.lua"):
+    for name in ("BfBotTim.lua", "BfBotPln.lua", "BfBotRst.lua"):
         runtime.execute((ROOT / "buffbot" / name).read_text(encoding="utf-8"))
     runtime.execute("""
         R=BfBot.Rest; P=BfBot.Plan

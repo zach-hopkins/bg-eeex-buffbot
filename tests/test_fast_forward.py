@@ -43,7 +43,7 @@ def test_native_mode_and_completion_restore_actual_baseline(fast):
     'combat=true','menu=1','multi=true',
     'e.GetActiveEngine=function()return{}end',
     'EngineGlobals.g_pBaldurChitin.m_pObjectGame.m_gameSave.m_inputMode=0x1016E',
-    'wall=120101'])
+    'wall=0'])
 def test_interruptions_restore_and_stop(fast,change):
     assert fast.execute('assert(F.Start(queue));'+change+''';F.Tick()
       return EEex_CChitin.TIMER_UPDATES_PER_SECOND==30 and stops==1 and not F.run
@@ -59,6 +59,31 @@ def test_load_releases_once_and_never_toggles_pause(fast):
     assert fast.execute('''
       assert(F.Start(queue));destroyed();destroyed()
       return not F.run and EEex_CChitin.TIMER_UPDATES_PER_SECOND==30
+    ''')
+
+
+def test_same_party_load_resets_execution_even_without_fast_forward(fast):
+    assert fast.execute('''
+      running=true;local resets=0
+      BfBot.Exec._HardReset=function()running=false;resets=resets+1 end
+      destroyed()
+      return not running and resets==1 and not F.run and stops==0
+    ''')
+
+
+def test_long_pause_or_healthy_plan_does_not_hit_a_wall_time_deadline(fast):
+    assert fast.execute('''
+      assert(F.Start(queue));wall=300100;F.Tick()
+      return F.run~=nil and running and stops==0 and EEex_CChitin.TIMER_UPDATES_PER_SECOND==60
+    ''')
+
+
+def test_failed_rate_read_keeps_restore_ownership_for_a_later_retry(fast):
+    assert fast.execute('''
+      assert(F.Start(queue));local timer=EEex_CChitin;EEex_CChitin=nil
+      assert(not F.Release('load or exit') and F.run and F.run.original==30)
+      EEex_CChitin=timer;assert(F.Release('retry'))
+      return not F.run and timer.TIMER_UPDATES_PER_SECOND==30 and not EEex.UncapFPS_FPSLimitEnabled
     ''')
 
 def test_failed_start_releases_and_fourfold_is_capped(fast):

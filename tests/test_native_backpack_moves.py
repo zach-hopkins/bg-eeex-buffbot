@@ -6,11 +6,13 @@ from lupa.luajit21 import LuaRuntime
 ROOT=Path(__file__).resolve().parents[1]
 
 
-@pytest.fixture
-def lua():
+@pytest.fixture(params=['266','273'])
+def lua(request):
     r=LuaRuntime(unpack_returned_tuples=True)
     r.execute('''
       BfBot={};nativeCalls=0;cursor={};slots={};bytes={}
+      nativeSwap=0x28F960;nativePack=0x290E00;stamp=0x609437B3;imageSize=0x3530000
+      inventoryScreen={ptr=400000}
       original={ptr=500000,m_useCount1=2,m_flags=1};slots[3]=original
       sprite={m_id=7,m_equipment={m_items={get=function(_,n)return slots[n]end}}}
       local base=100000;local game={ptr=300000}
@@ -21,7 +23,7 @@ def lua():
       EEex_Sprite_GetCharacterIndex=function()return 4 end -- deliberately reordered
       EEex_ReadU16=function(p)return p==base and 0x5A4D or 0 end
       EEex_ReadU32=function(p)return ({[base+60]=256,[base+256]=0x4550,
-        [base+264]=0x609437B3,[base+336]=0x3530000})[p]or 0 end
+        [base+264]=stamp,[base+336]=imageSize})[p]or 0 end
       EEex_Read32=function(p)return p==300000+0x6618+4 and 7 or -1 end
       EEex_Read64=function(p)return p==200000+0x10C8 and 400000 or 0 end
       for _,p in ipairs({
@@ -44,14 +46,20 @@ def lua():
         cast=function(sig,value)
           if sig=='void*' or sig=='uintptr_t'then return value end
           if sig=='void**'then assert(value==400000+0x50);return cursor end
-          if value==base+0x28F960 then return function(g,index,slot,held)
+          if value==base+nativeSwap then return function(g,index,slot,held)
             assert(g==300000);return exchange(index,slot,held)
           end end
-          assert(value==base+0x290E00)
+          assert(value==base+nativePack)
           return function(g,index,held,slot)assert(g==300000);return exchange(index,slot,held)end
         end,
       }
     ''')
+    if request.param=='273':
+        r.execute('''
+          stamp=0x6A18D73D;imageSize=0x3532000
+          local shifted={};for p,b in pairs(bytes)do shifted[p+0x5C0]=b end;bytes=shifted
+          nativeSwap=0x28FF20;nativePack=0x2913C0
+        ''')
     r.execute((ROOT/'buffbot/BfBotScn.lua').read_text(encoding='utf-8'))
     return r
 
@@ -67,7 +75,8 @@ def test_empty_backpack_move_preserves_instance_charges_and_uses_portrait_index(
 @pytest.mark.parametrize('setup', [
     'cursor[0]=123', 'slots[22]={ptr=99}',
     'EEex_Read32=function()return 99 end',
-    'bytes[100000+0x290E00]=0',
+    'bytes[100000+nativePack]=0',
+    'inventoryScreen={ptr=499999}',
 ])
 def test_bad_cursor_slots_identity_or_executable_never_pick_up(lua,setup):
     lua.execute(setup)

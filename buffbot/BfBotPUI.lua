@@ -1,5 +1,5 @@
--- Recipient-first beta UI. The caster editor and all legacy presets remain
--- accessible. This panel owns party plans, not per-character spell settings.
+-- Redux's party planner. Historical caster settings remain internal for save
+-- compatibility; this is the only player-facing editor.
 BfBot.PartyUI = {}
 local U, P = BfBot.PartyUI, BfBot.Plan
 bbPartyBuffs, bbPartyTargets, bbPartyRequests = {}, {}, {}
@@ -32,8 +32,6 @@ function U.Layout()
     area("bpNew", w - 108, 10, 30, 30)
     area("bpSettings", w - 74, 10, 30, 30)
     area("bpClose", w - 40, 10, 28, 30)
-    local recipientW = math.min(130, math.floor((w - 236) / 7))
-    for i = 0, 6 do area("bpRecipient" .. i, 12 + i * (recipientW + 3), 48, recipientW, 30) end
     area("bpSearch", w - 202, 50, 156, 26)
     area("bpSearchBg", w - 208, 48, 196, 30)
     area("bpSearchFrame", w - 209, 47, 198, 32)
@@ -80,10 +78,6 @@ function U.Close()
     if BfBot.Visual and BfBot.Visual.active then return BfBot.Visual.Close() end
     Infinity_PopMenu("BUFFBOT_PARTY")
 end
-function U.Legacy()
-    U.Close()
-    Infinity_PushMenu("BUFFBOT_MAIN")
-end
 function U.OnOpen()
     U.Layout()
     U.Refresh()
@@ -117,11 +111,14 @@ function U.BuffName(group, variant)
     return group.name .. " — " .. name
 end
 function U.Refresh(fresh)
+    U.sourcesDirty=nil
     if fresh ~= false then BfBot.Scan.InvalidateAll();U.rowOrder=nil end
     U.state = P.GetState()
     if not U.state then return end
-    U.snapshot = P.Snapshot()
+    U.recipient="all" -- one party dashboard; no character-filter views
+    U.snapshot = P.Snapshot(U.state.presets[U.state.active])
     U.preset = U.state.presets[U.state.active]
+    P.EnsureDependencies(U.snapshot,U.preset)
     P.ApplyOrder(U.snapshot,U.preset,P.EstimateCast)
     U.plan = P.Assign(U.snapshot, U.preset.requests)
     bbPartyName = U.preset.name
@@ -278,6 +275,11 @@ function U.Move(delta)
     for i, r in ipairs(U.preset.requests) do
         if r == U.request and U.preset.requests[i + delta] then
             U.preset.requests[i], U.preset.requests[i + delta] = U.preset.requests[i + delta], r
+            local allowed,why=P.OrderAllowed(U.snapshot,U.preset.requests)
+            if not allowed then
+                U.preset.requests[i],U.preset.requests[i+delta]=r,U.preset.requests[i]
+                bbPartyStatus=P.Text(why);return
+            end
             P.SaveCustomOrder(U.preset);U.undoOrder=nil
             U.Refresh(); return
         end
@@ -371,6 +373,10 @@ function U.CanCast()
     return U.plan and #U.preset.requests > 0
         and BfBot.Exec.GetState() ~= "running"
 end
+function U.ActiveModeLabel()
+    local mode=BfBot.Exec.GetForceMode and BfBot.Exec.GetForceMode() or 0
+    return P.Text(({[0]='Skip active',[1]='Refresh Low',[2]='Force All'})[mode])
+end
 function U.Cast()
     if BfBot.Mp and BfBot.Mp._IsMpSession() then
         bbPartyStatus = P.Text("Party planning is a single-player beta; use the caster editor"); return
@@ -378,7 +384,7 @@ function U.Cast()
     U.Refresh() -- Commit only against fresh availability, never a cached preview.
     if not U.CanCast() then return end
     P.ApplyOrder(U.snapshot,U.preset,P.EstimateCast)
-    local queue, plan, reason = P.BuildQueue(U.snapshot, U.preset.requests)
+    local queue, plan, reason = P.BuildQueue(U.snapshot, U.preset.requests,U.preset.orderMode)
     P.ReportSkipped(plan)
     if not queue then bbPartyStatus = reason or P.Text("No available casts in this plan"); return end
     if BfBot.Exec.Start(queue, U.state.fast==1 and 4 or 0, nil) then U.Close() end
@@ -662,6 +668,12 @@ function U.IsRecipient(slot)
 end
 function U.IsDashboard() return U.view == "dashboard" end
 function U.Tick()
+    if U.sourcesDirty and Infinity_GetClockTicks and BfBot.Exec.GetState()~='running' then
+        local now=Infinity_GetClockTicks()
+        if not U.lastSourcesRefresh or now-U.lastSourcesRefresh>=250 then
+            U.lastSourcesRefresh=now;U.Refresh()
+        end
+    end
     if bbPartyQuery ~= U.lastQuery then U.FilterDashboard() end
     if Infinity_GetScreenSize then
         local w,h = Infinity_GetScreenSize()
@@ -756,7 +768,7 @@ function U.ToggleCell(row, target)
         bbPartyFeedback = decision and decision.reason or P.Text("No eligible source"); return
     elseif #U.preset.requests < P.MAX_REQUESTS then
         U.preset.requests[#U.preset.requests + 1] = { group = row.key, target = target, var = row.variant, on = 1 }
-        bbPartyFeedback = sourceDescription(decision)
+        bbPartyFeedback = P.Text("Spell Source: ") .. sourceDescription(decision)
     else bbPartyFeedback = P.Text("Maximum 256 planned casts"); return end
     U.Refresh(false)
 end
@@ -783,6 +795,21 @@ function U.RowName(index)
     return row and (row.name .. (row.qualifier ~= "" and ("\n" .. row.qualifier) or "")) or ""
 end
 function U.RowTip(index) return U.RowName(index) end
+function U.EditRecipientSource(index,k,anchor)
+    local row=bbPartyRows[index]
+    local cell=row and (row.party and k==1 and row.partyCell or U.DashboardCell(index,k))
+    if not cell or not cell.checked or not cell.index then return false end
+    local request=U.preset.requests[cell.index]
+    if not request then return false end
+    if BfBot.Visual and BfBot.Visual.popup=='menu' and U.choiceMode=='caster'
+        and U.choiceRequest==request then
+        BfBot.Visual.ClosePopup();return false
+    end
+    U.request=request;U.choiceRequest,U.choicePreset=request,U.preset
+    U.choiceName=row.name
+    U.OpenChoices('caster',nil,nil,anchor)
+    return true
+end
 function U.UsesTip(index)
     local row=bbPartyRows[index]
     if not row or row.heading then return "" end
@@ -947,9 +974,11 @@ function U.SetCaster(actor)
     local d,reason=U.TryCaster(request,actor)
     if not d then bbPartyFeedback=reason or P.Text("No eligible source");return end
     request.source=actor or nil
-    U.request=request;bbPartyFeedback="";U.Refresh(false)
+    U.request=request
+    bbPartyFeedback=P.Text("Spell Source: ")..sourceDescription(d)
+    U.Refresh(false)
 end
-function U.OpenChoices(mode, key, variant)
+function U.OpenChoices(mode, key, variant, anchor)
     U.choiceMode, U.choiceGroup = mode, key
     bbPartyChoiceTitle, bbPartyChoiceHint = "", ""
     bbPartyChoices, bbPartyChoiceSelection = {}, 0
@@ -957,9 +986,9 @@ function U.OpenChoices(mode, key, variant)
         bbPartyChoices[#bbPartyChoices + 1] = {name=name,kind=kind,value=value,icon=icon or ""}
     end
     if mode == "caster" then
-        U.choiceAnchor=nil
+        U.choiceAnchor=anchor
         local request=U.choiceRequest
-        bbPartyChoiceTitle=P.Text("Caster: ") .. (U.choiceName or U.BuffName(U.snapshot.groups[request.group],request.var))
+        bbPartyChoiceTitle=P.Text("Spell Source: ") .. (U.choiceName or U.BuffName(U.snapshot.groups[request.group],request.var))
         local actor=U.snapshot.actors[request.target]
         bbPartyChoiceHint=P.Text("Recipient: ") .. (request.target=="party" and P.Text("Party") or actor and actor.name or request.target)
         local function casterOption(key,name)
@@ -989,11 +1018,17 @@ function U.OpenChoices(mode, key, variant)
         add(P.Text('Casting: ')..P.Text(casting),'openCasting')
         add(P.Text("Rename"), "rename")
         add(P.Text("Refresh"), "refresh")
-        add(P.Text("Import caster preset"), "import")
         add(P.Text('Export plan'), 'exportPlan')
         add(P.Text('Import plan...'), 'openPlanImport')
         add(P.Text('Delete preset...'), 'openDelete')
-        add(P.Text("Caster editor"), "legacy")
+        add(P.Text('Active buffs: ')..U.ActiveModeLabel(),'openActive')
+    elseif mode=='activeBuffs' then
+        bbPartyChoiceTitle=P.Text('Active buffs')
+        bbPartyChoiceHint=P.Text('Refresh Low: under 5 minutes. Force All: recast active buffs.')
+        local selected=BfBot.Exec.GetForceMode()
+        for _,option in ipairs({{'Skip active',0},{'Refresh Low',1},{'Force All',2}})do
+            add((selected==option[2] and '[x] ' or '')..P.Text(option[1]),'activeMode',option[2])
+        end
     elseif mode=='casting' then
         bbPartyChoiceTitle=P.Text('Casting mode')
         bbPartyChoiceHint=P.Text('Fast-forward speeds up the world at up to 30 rendered FPS.')
@@ -1101,8 +1136,10 @@ function U.Choose()
     elseif row.kind=='importPlan' then U.ImportPlan(row.value);return
     elseif row.kind=='deletePreset' then U.DeletePreset();return
     elseif row.kind=='cancel' then return
-    elseif row.kind == "import" then U.ImportLegacy(); return
-    elseif row.kind == "legacy" then U.Legacy(); return end
+    elseif row.kind=='openActive' then U.OpenChoices('activeBuffs');return
+    elseif row.kind=='activeMode' then
+        BfBot.Exec.SetForceMode(row.value);U.Refresh(false);return
+    end
     U.Refresh(row.kind == "refresh" or row.kind == "include")
 end
 function U.OpenRename(isNew)

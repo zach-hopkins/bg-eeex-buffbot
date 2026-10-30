@@ -1,0 +1,1 @@
+{"allowed":true,"mode":"smart","rows":[{"group":"spl:SPPR101","source":"dv:BB_ITEMS","target":"party"},{"group":"itm:WA2HELM:0","target":"protagonist"},{"group":"spl:SPPR201","source":"summon:planned:protagonist:image3:itm:WA2HELM:0","target":"dv:BB_CLERIC"}],"status":"Create the summon after the owner buffs and before its spells"}

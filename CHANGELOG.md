@@ -1,5 +1,18 @@
 # Changelog
 
+## v1.10.1-redux-beta.5 — 30 October 2026
+
+- Maintain Redux as an independent single-player alternative. Retire the exposed caster editor, character filter tabs and obsolete preset-innate installation/TLK plumbing; preserve saved recipient plans.
+- Use Party Buffs → Order → Summary. Put a source gear inside each selected recipient chip, with a nearby menu that closes when clicked again. Clarify assigned sources and compact duration ranges.
+- Add Skip Active / Refresh Low / Force All, retaining partial-plan execution and skipped-cast feedback. Improve ownership filtering and hide hostile categories/activation stances from automatic discovery while preserving manual additions.
+- Lend eligible one-use daily gear as well as multi-use gear. Keep only its owner/borrower waiting for custody; unrelated casters continue. Preserve physical charges, equipment restoration and saved return journals.
+- Predict Simulacrum, Project Image and supported fixed caster summon books before creation. Use the planned wearer for a borrowed Vhailor's Helm. Respect native level/slot rules, empty-name prepared-book sorting and spontaneous capacity rebuilding.
+- Enforce creator-before-dependent order in every mode. Bind verified owned spawns, check their real books, avoid duplicate live/planned budgets, and skip failed dependent work without blocking unrelated casters. Protect summon action chains from NPC AI replacement, then restore AI control.
+- Share one read-only timing model between Smart Order and execution. Delay shorter lanes to preserve buff time; refresh pending timing after actual completions, skips and speed/aura changes. Custom and Long First remain immediate except real prerequisites. No effect aging or Quick Cast hooks are added.
+- Improve fast-forward restoration/retry and same-party load teardown, preserving loaded item-return journals. Keep native casting at recommended 2x, optional 4x or Normal.
+- Accept IWD:EE installation experimentally; it remains untested.
+- Update the feature guide and original-versus-Redux comparison with current behavior and limits.
+
 ## v1.10.1-redux-beta.4 — 25 October 2026
 
 - Warn only for unavailable planned casts; fully reserved uses such as 0/1 are valid. Add count/header tooltips explaining free, available and reserved uses.

@@ -31,6 +31,10 @@ _spec.loader.exec_module(eeex_globals)
 # each with the reason. Only for deliberate, guarded probes (for example of a
 # newer EEex function behind `type(...) == "function"`). Stale entries fail.
 ALLOWED_UNDEFINED: dict[str, str] = {
+    "EEex_SummonerUUID": (
+        "Ownership key read from EEex UDAux, not a called Lua global. "
+        "The scanner also reports standalone EEex-prefixed name strings."
+    ),
     "EEex_CChitin": (
         "Optional generated native class binding used by EEex's own UncapFPS adapter; "
         "not enumerated in the pinned Lua/loader export list. Fast-forward probes it "

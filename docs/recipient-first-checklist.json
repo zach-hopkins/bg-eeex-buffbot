@@ -6,9 +6,9 @@
   },
   "branch": "codex/recipient-first-buffbot",
   "validation": {
-    "automated_passed": 1071,
-    "automated_deselected": 5,
-    "deselection_reason": "Five existing release/deploy tests need Windows symbolic-link privileges (WinError 1314).",
+    "automated_passed": 1110,
+    "automated_deselected": 6,
+    "deselection_reason": "Five existing symlink-privilege tests and the deliberately untested experimental IWD fixture.",
     "new_item_graph_regressions": 19,
     "includes": [
       "LuaJIT runtime regressions",
@@ -49,7 +49,9 @@
       "balanced_research_focused_passed": 130,
       "balanced_observer_evidence": "balanced-observer-offline-acceptance.json",
       "new_balanced_runtime_regressions": 34
-    }
+    },
+    "latest_evidence": "visual-review/evidence/2026-10-30/README.md",
+    "latest_native_engine": "BG2EE 2.7.3.0 in isolated EET copy"
   },
   "policies": {
     "initial_platform": "single-player EET",
@@ -482,5 +484,42 @@
       "Long first",
       "Custom"
     ]
+  },
+  "beta5": {
+    "future_sources": [
+      "Simulacrum",
+      "Vhailor planned wearer",
+      "Project Image",
+      "fixed CRE caster summons"
+    ],
+    "smart_start_timing": "one native-time model; shorter lanes delayed, pending work replanned",
+    "native_cases": [
+      "future-end-to-end",
+      "planned-helm-end-to-end",
+      "planned-image-end-to-end",
+      "planned-planetar-end-to-end",
+      "inline-boots-run",
+      "inline-boots-cancel",
+      "planned-divine-clone-0",
+      "planned-divine-clone-1",
+      "dragon-disciple-end-to-end",
+      "wizard-slot-gear-copy",
+      "fast-recovery-native",
+      "fast-load-native",
+      "inline-save-capture",
+      "inline-load-recovery",
+      "active-policy-native",
+      "missing-image-budget-native",
+      "ui-order-dependency",
+      "native-schedule-immediate",
+      "native-schedule-smart",
+      "beta5-final-smoke"
+    ],
+    "limitations": [
+      "Arbitrary script-added summon powers may need live discovery",
+      "IWD:EE gameplay untested",
+      "No equipped-owner or summon equipment lending"
+    ],
+    "package_version": "1.10.1-redux-beta.5"
   }
 }

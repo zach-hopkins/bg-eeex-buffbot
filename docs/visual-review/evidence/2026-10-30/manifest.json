@@ -1,0 +1,158 @@
+{
+  "automated-regression.txt": {
+    "bytes": 1344,
+    "sha256": "b49985246ebec2893ff9af25998f52a57a1b59a04bb0119a1ab620e6348e2a65"
+  },
+  "bg1-compact-final-party-buffs.png": {
+    "bytes": 280244,
+    "sha256": "5b2b91d0e33914ab55426077d1da0ebd84f7eb1408cc88588126a32f8293a228"
+  },
+  "bg1-compact-order.png": {
+    "bytes": 246733,
+    "sha256": "89b69fe5f3875a9b35b2f0787a5a1458b6baf0e75a5fe178d45457fdc54b67a5"
+  },
+  "bg1-compact-party-buffs.png": {
+    "bytes": 289767,
+    "sha256": "ccc9a2e5b39b4b80df5c8fc2874f7221990435d3212bcbc63b6c52d3efd64fd7"
+  },
+  "bg1-compact-source-bottom.png": {
+    "bytes": 277916,
+    "sha256": "fb4f0220fb5f1c06283d2a7f5b026e9983a45278477a38d346ed71a059bd9fec"
+  },
+  "bg1-compact-summary.png": {
+    "bytes": 267098,
+    "sha256": "46f4aa12891d0145f11a9fd58262846532e34907061005b12c8c952a3dc3d9a3"
+  },
+  "bg2-compact-final-party-buffs.png": {
+    "bytes": 273485,
+    "sha256": "5e0a50c5934d40bc127668c8e82864b71359f5c4ee8fbebb86312980165de1a6"
+  },
+  "iwd-compact-final-party-buffs.png": {
+    "bytes": 284150,
+    "sha256": "4c94623ac71ee112b3366259e3be17497f6f2a40004a37311693a2399e84601e"
+  },
+  "player-package.json": {
+    "bytes": 175,
+    "sha256": "52d1afaae391a554f4df40f12ba11e542df7d95a5a29815a05541a399ba6be35"
+  },
+  "README.md": {
+    "bytes": 2743,
+    "sha256": "e18619bc48a0bce85064380e508014f5dc1b326b2552a8c6bd4f3141469c4113"
+  },
+  "redux-active-policy-native.json": {
+    "bytes": 200,
+    "sha256": "07738bb692454bb4c97ddd8a98e782b0d82b2ceeb10e0ce893564d4a91f6e898"
+  },
+  "redux-beta5-final-smoke.json": {
+    "bytes": 161,
+    "sha256": "e7489b898cdfb5e704385f9ea7ff01f9a08e6f3c6825e62d6ccad2587b1e1891"
+  },
+  "redux-dragon-disciple-end-to-end.json": {
+    "bytes": 3925,
+    "sha256": "0d552169045681aee3e95b7a4008092a76ad0bd495a00498353128e4408dcc0b"
+  },
+  "redux-fast-load-native.json": {
+    "bytes": 307,
+    "sha256": "7e464945d6bd6b61e3f636c0ec1a0b9290257b7e9ba598d6e67a2297bb6b309d"
+  },
+  "redux-fast-recovery-native.json": {
+    "bytes": 555,
+    "sha256": "7f5d161c54f0d8592348de1001ed8ca80c204c6b69a51e8d19f2c0c9a0fca78a"
+  },
+  "redux-future-end-to-end.json": {
+    "bytes": 3827,
+    "sha256": "db66cdfba7be04f655287e922d8249c7172984d6bb147f64fb437cbf2ea96ed0"
+  },
+  "redux-inline-boots-cancel.json": {
+    "bytes": 616,
+    "sha256": "8ad0a41450bb31a3338467e3daea6e0a57ecf940c70b72a94a1b78efc1a1d5a9"
+  },
+  "redux-inline-boots-run.json": {
+    "bytes": 1444,
+    "sha256": "e8ce169a8b735fa0b22980e625cbba1bc1b7883bf87c351447cfbaa7d1472b57"
+  },
+  "redux-inline-load-recovery.json": {
+    "bytes": 279,
+    "sha256": "a80dac8a6bf8aa7871055ca2a4f218f97dadd12508bec3bedc882ab1eba7fc0c"
+  },
+  "redux-inline-save-capture.json": {
+    "bytes": 278,
+    "sha256": "9381bfbd801a060d9c654a7ba23c3468fbaf7b31cf2a78c1f325ae32a1f8c869"
+  },
+  "redux-missing-image-budget-native.json": {
+    "bytes": 80,
+    "sha256": "1bbb286782f5c5d0183fb64e59dcbcef183fb30224de7599862a6776ff1ad396"
+  },
+  "redux-native-schedule-immediate.json": {
+    "bytes": 1501,
+    "sha256": "a9a51cf0dd331c9bf983faf6c64f0f5958c9262a8b999da48cafcc02ae53bbf8"
+  },
+  "redux-native-schedule-smart.json": {
+    "bytes": 4193,
+    "sha256": "2c719aa742b9b0a11048397dbd0f023b23be61c9bd9d4291b20b20d2f62d08c0"
+  },
+  "redux-planned-divine-clone-0.json": {
+    "bytes": 7127,
+    "sha256": "2935e21680fe7c5f7a746a6340855b9b3969eebcc1a05141e85a381f636bd1d2"
+  },
+  "redux-planned-divine-clone-1.json": {
+    "bytes": 6766,
+    "sha256": "b9b59322079ba56964ee3c6fa8a2396542845429933b7303ae3d177552cda93d"
+  },
+  "redux-planned-helm-end-to-end.json": {
+    "bytes": 5386,
+    "sha256": "5ecd62b0ac2b7cf7e01c899a0717ded5dd15552191c135360be1a1e5868e87c8"
+  },
+  "redux-planned-image-end-to-end.json": {
+    "bytes": 3438,
+    "sha256": "0d8ab67db23d4385710da6706d27b137d97fe9d0c22b031f5b062a2e1df21be0"
+  },
+  "redux-planned-planetar-end-to-end.json": {
+    "bytes": 4326,
+    "sha256": "d8c101f6a3c3a6ed81a60ffbda879cd5b979d8598c72fc7bb446f85ccf798589"
+  },
+  "redux-ui-order-dependency.json": {
+    "bytes": 333,
+    "sha256": "1c7400f7b1a4e8730e4c12f2069ccdb23cdb9e747efca3105d33748bcb3cba8d"
+  },
+  "redux-wizard-slot-gear-copy.json": {
+    "bytes": 8274,
+    "sha256": "ac280035b12ba0f3984e2f2fe861ced3f115460a9da827b846126e1475f67af6"
+  },
+  "sod-compact-active-buffs.png": {
+    "bytes": 142533,
+    "sha256": "210a145906ff34538dcc3f62eb40ab4c0d737d9183b987246ce5b2d5c4542cbf"
+  },
+  "sod-compact-order.png": {
+    "bytes": 206730,
+    "sha256": "4551e789c6088d18f8255a08d1b062bc9038d0f8b14ee8bc7c585b20e150a153"
+  },
+  "sod-compact-party-buffs.png": {
+    "bytes": 256043,
+    "sha256": "a7b02f53ea49024a1a12bac8b1db55b8285dc63da9544399ffbeddde23bec999"
+  },
+  "sod-compact-settings-right.png": {
+    "bytes": 263061,
+    "sha256": "23b63bff372ec2358be6db3ff7d64921ef0f1bd2dfed4bab7732b06f02415fb9"
+  },
+  "sod-compact-summary.png": {
+    "bytes": 233466,
+    "sha256": "ce18fafee64711892b4b1dbd9b9a4849a9f7c32efbd3795aee4aa014c98375be"
+  },
+  "sod-wide-order.png": {
+    "bytes": 165964,
+    "sha256": "cd19dadf3f41b63657f3071c95b3508c614461cd99d68a3934bd82dfb4f6de5c"
+  },
+  "sod-wide-party-buffs.png": {
+    "bytes": 285549,
+    "sha256": "242795a96077cd3873b46eb2286c2d43cb4a8535fff0d5c2d7208c8665affd65"
+  },
+  "sod-wide-source-right.png": {
+    "bytes": 290725,
+    "sha256": "3dce1c02e52c89a033d411b1b1515b8edf8c74438ebdde04322f43d181b3c217"
+  },
+  "sod-wide-summary.png": {
+    "bytes": 201725,
+    "sha256": "959f79ec9dda909badd94e0112a3b865b64a84b87521adb887d508886b6cc6eb"
+  }
+}

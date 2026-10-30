@@ -745,164 +745,42 @@ function BfBot.UI._RegisterSpellListeners()
     end
 end
 
+-- Redux is the only exposed editor. Old config readers remain for save
+-- compatibility; their menus, chrome, resize hooks and options are not loaded.
 function BfBot.UI._OnMenusLoaded()
-    -- Register bb_* custom text styles (deep-copies of engine styles) BEFORE
-    -- the menu renders. The .menu references these via `text style "bb_*"`,
-    -- so they must exist before EEex_Menu_LoadFile hands the menu to the engine.
     BfBot.Theme._RegisterStyles()
-
-    -- Restore saved theme + font size from baldur.ini. Must run AFTER
-    -- _RegisterStyles because _LoadFromINI calls _RefreshStyles, which mutates
-    -- the bb_* styles registered above.
     BfBot.Theme._LoadFromINI()
-
-    -- Register the BuffBot tab in EEex's Options menu. Must run AFTER
-    -- _LoadFromINI so the option storage's read() returns the persisted
-    -- (not default) values. Idempotent — subsequent calls are no-ops.
-    BfBot.Theme._RegisterOptionsTab()
-
-    -- Generate resolution-appropriate parchment background MOS for every theme.
-    -- MUST happen before EEex_Menu_LoadFile so the menu picks up the right MOS
-    -- for whichever theme is active (and the others when the user switches).
-    for _, resref in ipairs({"BFBOTBG", "BFBOTBG2", "BFBOTBG3"}) do
-        BfBot.UI._GenerateBgMOS(resref)
-    end
-
-    -- Load our .menu definitions
-    EEex_Menu_LoadFile("BuffBot")
+    EEex_Menu_LoadFile('BuffBot')
     if BfBot.Visual and BfBot.Visual.Available() then
-        BfBot.Visual.InstallStyles()
-        EEex_Menu_LoadFile("BfBotRx")
+        BfBot.Visual.InstallStyles();EEex_Menu_LoadFile('BfBotRx')
     end
-
-    -- Apply current font size to live menu items (per-element point mutation).
-    -- The engine snapshots `style.point` at parse time, so style changes only
-    -- take effect for items parsed afterward. _ApplyFontSizesToMenus walks the
-    -- already-parsed items and writes the scaled point directly into each.
     BfBot.Theme._ApplyFontSizesToMenus()
-
-    -- Register per-frame render listeners that re-apply the scaled point to
-    -- each item right before it's drawn. Without this, item types that
-    -- snapshot `text.point` at push time (buttons, list cells) only pick up
-    -- the new size on the next push, not on a live size change.
     BfBot.Theme._RegisterFontRenderListeners()
-
-    -- Register 9-slice border textures (one per theme variant)
-    -- Wrapped in pcall — stores status for later console inspection
-    BfBot.UI._borderStatus = "not attempted"
-    local BORDER_RESREFS = { "BFBOTFR", "BFBOTFR2", "BFBOTFR3" }
-    local anyOk = false
-    local errs = {}
-    for _, resref in ipairs(BORDER_RESREFS) do
-        local regOk, regErr = pcall(function()
-            EEex.RegisterSlicedRect("BuffBot_Border_" .. resref, {
-                ["topLeft"]     = {   0,   0, 128, 128 },
-                ["top"]         = { 128,   0, 256, 128 },
-                ["topRight"]    = { 384,   0, 128, 128 },
-                ["right"]       = { 384, 128, 128, 256 },
-                ["bottomRight"] = { 384, 384, 128, 128 },
-                ["bottom"]      = { 128, 384, 256, 128 },
-                ["bottomLeft"]  = {   0, 384, 128, 128 },
-                ["left"]        = {   0, 128, 128, 256 },
-                ["center"]      = { 128, 128, 256, 256 },
-                ["dimensions"]  = { 512, 512 },
-                ["resref"]      = resref,
-                ["flags"]       = 0,
-            })
-        end)
-        if regOk then
-            anyOk = true
-        else
-            table.insert(errs, resref .. ": " .. tostring(regErr))
-        end
+    local actionbarMenu=EEex_Menu_Find('WORLD_ACTIONBAR')
+    if actionbarMenu then
+        local beforeOpen=EEex_Menu_GetItemFunction(actionbarMenu.reference_onOpen)
+        local beforeClose=EEex_Menu_GetItemFunction(actionbarMenu.reference_onClose)
+        EEex_Menu_SetItemFunction(actionbarMenu.reference_onOpen,BfBot._SafeCallback("ui.world_actionbar_open",function()
+            local result=beforeOpen and beforeOpen();BfBot.UI._OpenActionbarBtn();return result
+        end))
+        EEex_Menu_SetItemFunction(actionbarMenu.reference_onClose,BfBot._SafeCallback("ui.world_actionbar_close",function()
+            BfBot.UI._CloseActionbarBtn();return beforeClose and beforeClose()
+        end))
     end
-    BfBot.UI._borderStatus = anyOk
-        and (#errs == 0 and "registered" or ("registered (partial; " .. table.concat(errs, "; ") .. ")"))
-        or ("FAILED: " .. table.concat(errs, "; "))
-
-    -- Render hooks: draw 9-slice border on main panel + all sub-menus
-    -- Active theme's borderResref is read at draw time, so theme switches take effect immediately
-    if anyOk then
-        local borderHook = function(item)
-            pcall(function()
-                EEex.DrawSlicedRect("BuffBot_Border_" .. BfBot.Theme._active.borderResref, { item:getArea() })
-            end)
-        end
-        EEex_Menu_AddBeforeUIItemRenderListener("bbBgFrame",  borderHook)
-        EEex_Menu_AddBeforeUIItemRenderListener("bbTgtFrame", borderHook)
-        EEex_Menu_AddBeforeUIItemRenderListener("bbRenFrame", borderHook)
-        EEex_Menu_AddBeforeUIItemRenderListener("bbConfFrame", borderHook)
-        EEex_Menu_AddBeforeUIItemRenderListener("bbPickFrame", borderHook)
-        EEex_Menu_AddBeforeUIItemRenderListener("bbImpFrame", borderHook)
-        EEex_Menu_AddBeforeUIItemRenderListener("bbVarFrame", borderHook)
-    end
-
-    -- Hook WORLD_ACTIONBAR open/close to push/pop companion button menu
-    -- (same pattern as B3EffMen.lua — avoids fighting for space inside the actionbar)
-    local actionbarMenu = EEex_Menu_Find("WORLD_ACTIONBAR")
-
-    local oldOnOpen = EEex_Menu_GetItemFunction(actionbarMenu.reference_onOpen)
-    EEex_Menu_SetItemFunction(actionbarMenu.reference_onOpen,
-        BfBot._SafeCallback("ui.world_actionbar_open", function()
-        local result = oldOnOpen and oldOnOpen()
-        BfBot.UI._OpenActionbarBtn()
-        return result
-    end))
-
-    local oldOnClose = EEex_Menu_GetItemFunction(actionbarMenu.reference_onClose)
-    EEex_Menu_SetItemFunction(actionbarMenu.reference_onClose,
-        BfBot._SafeCallback("ui.world_actionbar_close", function()
-        BfBot.UI._CloseActionbarBtn()
-        return oldOnClose and oldOnClose()
-    end))
-
-    -- F11 hotkey
-    EEex_Key_AddPressedListener(BfBot._SafeCallback(
-        "ui.key_pressed", BfBot.UI._OnKeyPressed))
-
-    -- Sprite listeners for auto-refresh (root-guarded across F5/module reloads)
     BfBot.UI._RegisterSpellListeners()
-
-    -- Resolution change: regenerate MOS for every theme, clamp stored geometry, re-layout
-    EEex_Menu_AddWindowSizeChangedListener(BfBot._SafeCallback(
-        "ui.window_size_changed", function(w, h)
-        for _, resref in ipairs({"BFBOTBG", "BFBOTBG2", "BFBOTBG3"}) do
-            BfBot.UI._GenerateBgMOS(resref)
-        end
-        -- Clamp stored geometry to new screen bounds
-        if BfBot.UI._panelW or BfBot.UI._panelH or BfBot.UI._panelX or BfBot.UI._panelY then
-            local sw, sh = w, h
-            if BfBot.UI._panelW and BfBot.UI._panelW > sw then BfBot.UI._panelW = nil end
-            if BfBot.UI._panelH and BfBot.UI._panelH > sh then BfBot.UI._panelH = nil end
-            local cpw = BfBot.UI._panelW or math.floor(sw * 0.8)
-            local cph = BfBot.UI._panelH or math.floor(sh * 0.8)
-            if BfBot.UI._panelX and BfBot.UI._panelX + cpw > sw then
-                BfBot.UI._panelX = math.max(0, sw - cpw)
-            end
-            if BfBot.UI._panelY and BfBot.UI._panelY + cph > sh then
-                BfBot.UI._panelY = math.max(0, sh - cph)
-            end
-        end
-        BfBot.UI._CloseQuickMenu()
-        BfBot.UI._OpenActionbarBtn()
-        if buffbot_isOpen then
-            BfBot.UI._Layout()
-        end
-    end))
-
-    -- Load debug mode preference from INI
-    local debugPref = Infinity_GetINIValue("BuffBot", "Debug", 0)
-    BfBot._debugMode = (debugPref == 1) and 1 or 0
-
-    -- Load saved panel geometry from INI
-    BfBot.UI._LoadLayout()
-
-    BfBot.UI._initialized = true
+    if not BfBot._uiLifecycleListenersRegistered then
+        EEex_Key_AddPressedListener(BfBot._SafeCallback("ui.key_pressed",function(...)
+            return BfBot.UI._OnKeyPressed(...)
+        end))
+        EEex_Menu_AddWindowSizeChangedListener(BfBot._SafeCallback("ui.window_size_changed",function()
+            BfBot.UI._CloseQuickMenu();BfBot.UI._OpenActionbarBtn()
+            if BfBot.Visual and BfBot.Visual.active then BfBot.Visual.Layout() end
+        end))
+        BfBot._uiLifecycleListenersRegistered=true
+    end
+    BfBot._debugMode=Infinity_GetINIValue('BuffBot','Debug',0)==1 and 1 or 0
+    BfBot.UI._initialized=true
 end
-
--- ============================================================
--- Actionbar Companion Button (pushed/popped with WORLD_ACTIONBAR)
--- ============================================================
 
 function BfBot.UI._ActionbarVisible()
     return e and worldScreen and e:GetActiveEngine()==worldScreen
@@ -983,9 +861,10 @@ function BfBot.UI._CastQuickPreset(row)
     if BfBot.Exec.GetState()=='running' or BfBot.Share and BfBot.Share.run then
         BfBot._Display('BuffBot: already casting');return
     end
-    local snapshot=BfBot.Plan.Snapshot()
+    local snapshot=BfBot.Plan.Snapshot(entry.preset)
+    BfBot.Plan.EnsureDependencies(snapshot,entry.preset)
     BfBot.Plan.ApplyOrder(snapshot,entry.preset,BfBot.Plan.EstimateCast)
-    local queue,plan=BfBot.Plan.BuildQueue(snapshot,entry.preset.requests)
+    local queue,plan=BfBot.Plan.BuildQueue(snapshot,entry.preset.requests,entry.preset.orderMode)
     BfBot.Plan.ReportSkipped(plan)
     if not queue then BfBot._Display('BuffBot: no available casts in this plan');return end
     -- Direct UI dispatch: no spell/innate action is queued on the selected PC.
@@ -1232,26 +1111,12 @@ end
 
 function BfBot.UI.Toggle()
     BfBot.UI._CloseQuickMenu()
-    local function open(name)
-        local state=Infinity_IsMenuOnStack(name)
-        return state==1 or state==true
-    end
-    if BfBot.PartyUI then
-        if open("BUFFBOT_RX") or open("BUFFBOT_PARTY") then BfBot.PartyUI.Close()
-        elseif open("BUFFBOT_MAIN") then BfBot.UI.Close()
-        else BfBot.PartyUI.Open() end
-        return
-    end
-    if open("BUFFBOT_MAIN") then
-        Infinity_PopMenu("BUFFBOT_MAIN")
-    else
-        Infinity_PushMenu("BUFFBOT_MAIN")
-    end
+    local open=Infinity_IsMenuOnStack('BUFFBOT_RX')
+    local fallback=Infinity_IsMenuOnStack('BUFFBOT_PARTY')
+    if open==true or open==1 or fallback==true or fallback==1 then BfBot.PartyUI.Close()
+    else BfBot.PartyUI.Open() end
 end
-
-function BfBot.UI.Close()
-    Infinity_PopMenu("BUFFBOT_MAIN")
-end
+function BfBot.UI.Close() BfBot.PartyUI.Close() end
 
 function BfBot.UI._OnOpen()
     buffbot_isOpen = true
@@ -2418,6 +2283,7 @@ end
 
 function BfBot.UI._OnSpellListChanged(sprite, resref, changeAmount)
     BfBot.Scan.Invalidate(sprite)
+    if BfBot.PartyUI and not BfBot.UI._IsBuffBotGeneratedResref(resref) then BfBot.PartyUI.sourcesDirty=true end
     if not BfBot.UI._IsBuffBotGeneratedResref(resref)
         and BfBot.UI._IsDisplayedSpellEventSprite(sprite) then
         _requestSpellListRefresh()
@@ -2426,11 +2292,13 @@ end
 
 function BfBot.UI._OnSpellCountsReset(sprite)
     BfBot.Scan.Invalidate(sprite)
+    if BfBot.PartyUI then BfBot.PartyUI.sourcesDirty=true end
     if BfBot.UI._IsDisplayedSpellEventSprite(sprite) then _requestSpellListRefresh() end
 end
 
 function BfBot.UI._OnSpellRemoved(sprite, resref)
     BfBot.Scan.Invalidate(sprite)
+    if BfBot.PartyUI and not BfBot.UI._IsBuffBotGeneratedResref(resref) then BfBot.PartyUI.sourcesDirty=true end
     if not BfBot.UI._IsBuffBotGeneratedResref(resref)
         and BfBot.UI._IsDisplayedSpellEventSprite(sprite) then
         _requestSpellListRefresh()

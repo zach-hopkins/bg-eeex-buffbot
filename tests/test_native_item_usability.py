@@ -6,12 +6,12 @@ from lupa.luajit21 import LuaRuntime
 ROOT = Path(__file__).resolve().parents[1]
 
 
-@pytest.fixture
-def lua():
+@pytest.fixture(params=['266','273'])
+def lua(request):
     r = LuaRuntime(unpack_returned_tuples=True)
     r.execute('''
         BfBot={};bytes={};calls=0;allowed=1;characterIndex=2
-        local base=100000
+        local base=100000;nativeUsable=base+0x271550;profileDelta=0
         for _,p in ipairs({
           {0x271550,{0x48,0x89,0x74,0x24,0x20,0x57,0x48,0x83,0xEC,0x30,0x49,0x8B,0xF8}},
           {0x2715D7,{0xE8,0x74,0,0,0}},
@@ -34,7 +34,7 @@ def lua():
           cast=function(sig,address)
             if sig=='void*'then return address end
             assert(sig=='int(*)(void*,int,void*,int*,int)')
-            assert(address==base+0x271550)
+            assert(address==nativeUsable)
             return function(game,index,itemPtr,why,mode)
               calls=calls+1
               assert(game==111 and index==2 and itemPtr==333 and mode==0)
@@ -43,6 +43,19 @@ def lua():
           end,
         }
     ''')
+    if request.param=='273':
+        r.execute('''
+          profileDelta=0x260;nativeUsable=nativeUsable+profileDelta
+          local old=EEex_ReadU32
+          EEex_ReadU32=function(p)
+            if p==100000+0x108 then return 0x6A18D73D end
+            if p==100000+0x150 then return 0x3532000 end
+            return old(p)
+          end
+          for _,offset in ipairs({0x271550,0x2715D7,0x271617})do
+            for n=0,12 do local value=bytes[100000+offset+n];if value then bytes[100000+offset+profileDelta+n]=value end end
+          end
+        ''')
     r.execute((ROOT/'buffbot/BfBotScn.lua').read_text(encoding='utf-8'))
     return r
 
@@ -58,7 +71,7 @@ def test_full_inventory_predicate_includes_native_item_type_decision(lua, allowe
 @pytest.mark.parametrize('offset', [0x271550, 0x2715D7, 0x271617])
 def test_modified_function_or_internal_call_is_never_invoked(lua, offset):
     lua.globals().offset = offset
-    lua.execute('bytes[100000+offset]=0')
+    lua.execute('bytes[100000+offset+profileDelta]=0')
     result = lua.execute('return BfBot.Scan._NativeCanWearItem(sprite,item)')
     assert result[0] is None
     assert lua.eval('calls') == 0

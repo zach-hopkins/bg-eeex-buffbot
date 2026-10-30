@@ -28,6 +28,8 @@ Infinity_DoFile("BfBotPer")  -- Persistence (depends on Scan, Class)
 Infinity_DoFile("BfBotInn")  -- Retired shortcut cleanup and legacy helper spells
 BfBot.Persist.Init()         -- Register marshal handlers for save/load
 Infinity_DoFile("BfBotPln")  -- Recipient plans and resource reservations
+Infinity_DoFile("BfBotTim")  -- Shared native-time dependency scheduling
+Infinity_DoFile("BfBotSum")  -- Read-only predicted image and creature spellbooks
 Infinity_DoFile("BfBotShr")  -- Engine-checked sharing and persistent return journal
 BfBot.Plan.Init()           -- Separate, versioned party-plan save handler
 Infinity_DoFile("BfBotIO")   -- Non-executable recipient-plan export/import
@@ -37,7 +39,7 @@ Infinity_DoFile("BfBotFst")  -- Native normal casting with temporary simulation 
 BfBot.Fast.Init()
 Infinity_DoFile("BfBotPUI")  -- Recipient-first panel callbacks
 Infinity_DoFile("BfBotVD")   -- Generated modular visual resources and design tokens
-Infinity_DoFile("BfBotVis")  -- Optional UI++ recipient presentation; old art fallback
+Infinity_DoFile("BfBotVis")  -- Standalone private art, optional UI++ theme/fonts
 BfBot.Legacy.EnsureHelperSpells()
 BfBot.Legacy.Init()         -- Remove retired shortcuts when old characters load
 

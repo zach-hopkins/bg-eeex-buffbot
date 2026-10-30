@@ -1,7 +1,7 @@
 // installer.component.luajit
 @100 = ~BuffBot: supporto EEex LuaJIT (rilevato automaticamente)~
 // installer.require.game
-@101 = ~BuffBot richiede BG:EE, BG2:EE o EET.~
+@101 = ~BuffBot richiede BG:EE, BG2:EE, EET o IWD:EE.~
 // installer.require.eeex
 @102 = ~BuffBot richiede EEex v0.11.0-alpha o una versione successiva. Installa prima EEex: https://github.com/Bubb13/EEex/releases~
 // installer.luajit.already_active
@@ -395,7 +395,7 @@
 // party.text13
 @1012 = ~No unreserved uses~
 // party.text14
-@1013 = ~5E sources require the caster editor~
+@1013 = ~5E spell sources are not supported~
 // party.text15
 @1014 = ~Caster class unavailable~
 // party.text16
@@ -447,7 +447,7 @@
 // party.text39
 @1038 = ~Import into an empty preset~
 // party.text40
-@1039 = ~Party planning is a single-player beta; use the caster editor~
+@1039 = ~Party planning supports single-player only~
 // party.text41
 @1040 = ~Resolve unavailable casts before casting~
 // party.text42

@@ -3588,7 +3588,7 @@ def _assert_registration_is_wrapped(
 
 def test_main_callback_registrations_are_wrapped_after_core_load() -> None:
     core_load = MAIN_SOURCE.index('Infinity_DoFile("BfBotCor")')
-    no_io_assignment = MAIN_SOURCE.index("BfBot._noIO = 1")
+    no_io_assignment = MAIN_SOURCE.index("BfBot._noIO = ")
     no_io_notice = MAIN_SOURCE.index('"main.no_luajit_notice"')
 
     assert no_io_assignment < core_load < no_io_notice

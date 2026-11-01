@@ -1,7 +1,17 @@
 # Changelog
 
-## Unreleased — beta.5 fixes
+## v1.10.1-redux-beta.6 — 31 October 2026
 
+- Offer Recommended (with LuaJIT setup helper) and Without LuaJIT downloads,
+  each with an Install-BuffBot.cmd launcher selecting its intended components.
+- Make LuaJIT optional: the main component accepts EEex's built-in Lua 5.2.
+  Disable automatic item borrowing without LuaJIT; hide file import/export
+  without file access. Preserve save-backed plans and embed the selected
+  translation catalog at installation so language selection needs no runtime I/O.
+- Restore visible completion feedback above the party leader, with message-log
+  fallback and execution-time skipped counts. Wait for pending item returns and
+  avoid duplicate or stale-run success notices.
+- New optional-runtime and completion text uses English fallback in other catalogs.
 - Recognize caster-centered buffs delivered through friendly area child spells,
   including this install's Chant, Prayer and similar wrappers. Their predicted
   summon uses now appear when the creation step is enabled, and existing

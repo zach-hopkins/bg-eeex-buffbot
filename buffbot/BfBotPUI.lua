@@ -1018,8 +1018,10 @@ function U.OpenChoices(mode, key, variant, anchor)
         add(P.Text('Casting: ')..P.Text(casting),'openCasting')
         add(P.Text("Rename"), "rename")
         add(P.Text("Refresh"), "refresh")
-        add(P.Text('Export plan'), 'exportPlan')
-        add(P.Text('Import plan...'), 'openPlanImport')
+        if not BfBot._noIO then
+            add(P.Text('Export plan'), 'exportPlan')
+            add(P.Text('Import plan...'), 'openPlanImport')
+        end
         add(P.Text('Delete preset...'), 'openDelete')
         add(P.Text('Active buffs: ')..U.ActiveModeLabel(),'openActive')
     elseif mode=='activeBuffs' then

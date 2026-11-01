@@ -306,3 +306,38 @@ def test_leader_lookup_failure_still_shows_the_notice_and_reports(exec_runtime) 
     assert displayed[0].startswith("[BuffBot ERROR] Party leader lookup failed")
     assert "portrait lookup broke" in displayed[0]
     assert displayed[1:] == ["Notice", "Notice again"]
+
+
+@pytest.mark.parametrize('skipped', (0, 2))
+def test_completion_is_visible_once_after_casts_and_item_returns(exec_runtime, skipped):
+    exec_runtime.globals().skipped = skipped
+    facts = _run(exec_runtime, '''
+        EEex_Sprite_GetInPortrait=function()return T_Leader end
+        BfBot.Exec._IsStateStale=function()return false end
+        BfBot.Exec._StripCheatBuffs=function()end
+        BfBot.Exec._LogEntry=function()end
+        BfBot.Exec._castCount=3; BfBot.Exec._skipCount=skipped
+        BfBot.Exec._state='running'
+        BfBot.Share={liveLoan={}}
+        BfBot.Exec._Complete(); assert(#T.added==0)
+        BfBot.Share.liveLoan=nil
+        BfBot.Exec._Complete()
+        BfBot.Exec._Complete()
+        return {count=#T.added,text=T.added[1].message.m_text,state=BfBot.Exec._state}
+    ''')
+    assert facts['count'] == 1
+    assert facts['state'] == 'done'
+    expected = 'BuffBot: Buff plan completed'
+    if skipped:
+        expected += f' ({skipped} casts skipped)'
+    assert facts['text'] == expected
+
+
+def test_stale_execution_does_not_claim_success(exec_runtime):
+    _run(exec_runtime, '''
+        BfBot.Exec._state='running'
+        BfBot.Exec._IsStateStale=function()return true end
+        BfBot.Exec._HardReset=function()BfBot.Exec._state='idle'end
+        BfBot.Exec._Complete()
+        assert(#T.added==0 and #T.displayed==0)
+    ''')

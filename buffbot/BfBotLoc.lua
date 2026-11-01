@@ -1,6 +1,8 @@
 -- BfBotLoc.lua — file-backed runtime localization with checked-in English fallback
 
 BfBot = BfBot or {}
+-- WeiDU replaces this with the selected TRA as data, never executable code.
+local _installedCatalog = nil
 
 local _registry = {
     ["party.text103"] = { id = 1102, fallback = [=[Recipient]=] },
@@ -199,7 +201,9 @@ local _registry = {
     ["ui.category.unknown"] = { id = 451, fallback = [=[unknown]=] },
     ["ui.repeat.compact"] = { id = 452, fallback = [=[R{count}]=] },
     ["ui.lock.compact"] = { id = 453, fallback = [=[[L]]=] },
-    ["feedback.no_luajit"] = { id = 500, fallback = [=[BuffBot: LuaJIT not detected. F12 innates, Quick Cast, Export/Import, and logging are disabled. Install EEex LuaJIT component for full functionality.]=] },
+    ["feedback.no_luajit"] = { id = 500, fallback = [=[BuffBot: LuaJIT is optional. Automatic item borrowing is disabled. File import/export and file logging need file access; plans still save with your game.]=] },
+    ["feedback.plan_completed"] = { id = 560, fallback = [=[BuffBot: Buff plan completed]=] },
+    ["feedback.plan_completed_skips"] = { id = 561, fallback = [=[BuffBot: Buff plan completed ({skipped} casts skipped)]=] },
     ["feedback.combat_stopped"] = { id = 501, fallback = [=[BuffBot: Combat detected - casting stopped]=] },
     ["feedback.cast_timeout"] = { id = 502, fallback = [=[BuffBot: casting timed out - stopped]=] },
     ["feedback.party_changed_after_run"] = { id = 503, fallback = [=[BuffBot: Party changed — retry after the current run]=] },
@@ -279,16 +283,21 @@ for _, entry in pairs(_registry) do
 end
 
 local _selectedById = {}
-local function _LoadSelectedCatalog()
-    if type(io) ~= "table" or type(io.open) ~= "function" then return end
+local function _ReadSelectedCatalog()
+    if type(io) ~= "table" or type(io.open) ~= "function" then return _installedCatalog end
 
     local openOK, handle = pcall(io.open, "override/bfbot_l10n.tra", "r")
-    if not openOK or not handle then return end
+    if not openOK or not handle then return _installedCatalog end
 
     local readOK, content = pcall(function() return handle:read("*a") end)
     pcall(function() handle:close() end)
-    if not readOK or type(content) ~= "string" then return end
+    if not readOK or type(content) ~= "string" then return _installedCatalog end
+    return content
+end
 
+local function _LoadSelectedCatalog()
+    local content = _ReadSelectedCatalog()
+    if type(content) ~= "string" then return end
     for line in content:gmatch("[^\r\n]+") do
         local idText, value = line:match(
             "^%s*@(%d+)%s*=%s*~([^~]+)~%s*$"

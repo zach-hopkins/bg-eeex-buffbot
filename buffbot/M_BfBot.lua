@@ -4,14 +4,15 @@
 if not EEex_Active then return end
 
 BfBot = BfBot or {}
-if not io then
-    BfBot._noIO = 1
-end
+BfBot._noIO = type(io) ~= "table" or type(io.open) ~= "function"
+BfBot._noLuaJIT = type(jit) ~= "table"
+-- Built-in Lua 5.2 uses bit32; LuaJIT uses bit.
+if not bit then bit = bit32 end
 
 Infinity_DoFile("BfBotCor")  -- Namespace, logging, shared utilities, caches
 Infinity_DoFile("BfBotLoc")  -- file-backed localization with English fallback
 
-if BfBot._noIO then
+if BfBot._noLuaJIT then
     EEex_Menu_AddAfterMainFileLoadedListener(BfBot._SafeCallback(
         "main.no_luajit_notice", function()
         Infinity_DisplayString(BfBot.L10N.Get("feedback.no_luajit"))

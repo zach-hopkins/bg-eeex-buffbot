@@ -3,6 +3,7 @@
 BfBot.Visual = {}
 local V,U,P = BfBot.Visual,BfBot.PartyUI,BfBot.Plan
 local D=BfBot.VisualData
+local unpack = table.unpack or unpack
 bbVisualSources,bbVisualSourceSelection={},0
 local skins={[0]='sod',[1]='iwd',[2]='bg1',[3]='bg2'}
 local continuationLow,continuationHigh=string.char(128),string.char(191)

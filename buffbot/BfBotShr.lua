@@ -94,6 +94,7 @@ function S.CanBorrow(source,recipient)
     return BfBot.Scan._NativeCanWearItem(recipient.sprite,location.item)==true
 end
 function S.AddSources(snapshot)
+    if BfBot._noLuaJIT then return end
     if BfBot.Mp and BfBot.Mp._IsMpSession() then return end
     for _,group in pairs(snapshot.groups) do
         local originals={};for _,source in ipairs(group.sources) do originals[#originals+1]=source end
@@ -145,6 +146,7 @@ local function fail(message)
     if S.run then S.run.cancelled=true end
 end
 function S.Start(queue,qcMode)
+    if BfBot._noLuaJIT then return false,'reason.exec.no_valid_entries',{} end
     if type(queue)~='table' or #queue==0 then return false,'reason.exec.empty_queue',{} end
     if BfBot.Mp and BfBot.Mp._IsMpSession() then return false,'reason.exec.already_running',{} end
     local state=BfBot.Plan.GetState()
@@ -330,6 +332,7 @@ function S.ForgetExecution()
     S.returnSent,S.repositionSent,S.reportedRecovery,S.lastFailure=nil,nil,nil,nil
 end
 function S.MaterializeLoan(key,caster,entry)
+    if BfBot._noLuaJIT then return nil,'item sharing requires LuaJIT' end
     local raw=entry.raw
     if raw.loanFailure then return nil,raw.loanFailure end
     local loan=S.liveLoan

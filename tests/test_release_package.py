@@ -19,6 +19,7 @@ from tests.test_eeex_compatibility_installer import (
     LANGUAGE_CASES,
     _game_tlk,
     _assert_installed,
+    _official_loader_ini,
     _assert_weidu_249,
     _state_tlk,
     _write_tlk_strings,
@@ -197,6 +198,7 @@ def _run_builder(
     output: Path,
     *,
     repo_root: Path = ROOT,
+    profile: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
@@ -204,6 +206,7 @@ def _run_builder(
             _shell_path(repo_root / "tools/build-release.sh"),
             _shell_path(installer),
             _shell_output_path(output),
+            *([profile] if profile else []),
         ],
         cwd=repo_root,
         capture_output=True,
@@ -281,6 +284,34 @@ def test_release_builder_produces_exact_byte_preserving_allowlist(
         or name.casefold().endswith((".bak", ".backup", "~"))
         for name in names
     )
+
+
+@pytest.mark.parametrize('profile,components', [
+    ('recommended', (1, 0)), ('without-luajit', (0,)),
+])
+def test_release_profiles_install_their_advertised_runtime(tmp_path, profile, components):
+    archive = tmp_path / (profile + '.zip')
+    result = _run_builder(_weidu(), archive, profile=profile)
+    assert result.returncode == 0, result.stdout + result.stderr
+    game = BuffBotGame(tmp_path / 'game', 'v1')
+    game.configure_loader(_official_loader_ini((
+        'LuaPatchMode=INTERNAL', 'LuaLibrary=lua52.dll', 'LuaVersionExternal=5.2',
+    )))
+    before = game.snapshot()
+    with ZipFile(archive) as zipped:
+        assert set(zipped.namelist()) == ARCHIVE_FILES | {'Install-BuffBot.cmd', 'INSTALL.txt'}
+        launcher = zipped.read('Install-BuffBot.cmd').decode('ascii')
+        assert '--force-install-list ' + ' '.join(map(str, components)) + '\r\n' in launcher
+        assert 'pushd "%~dp0"' in launcher
+        assert zipped.read('buffbot/setup-buffbot.tp2') == TP2_PATH.read_bytes()
+        zipped.extractall(game.root)
+    _assert_installed(game, game.install_many(*components))
+    if profile == 'recommended':
+        game.assert_luajit_state(game.expected_version)
+    else:
+        game.assert_main_installed(before)
+        assert not (game.root / 'lua51.dll').exists()
+        assert not (game.root / 'LuaProvider.dll').exists()
 
 
 def test_release_builder_resolves_relative_output_before_staging(
@@ -414,7 +445,9 @@ def test_release_workflow_delegates_packaging_and_keeps_version_guards() -> None
     assert 'TAG="${{' not in source
     assert "bash tools/build-release.sh" in source
     assert "/tmp/setup-buffbot.exe" in source
-    assert '"/tmp/buffbot-${RELEASE_TAG}.zip"' in source
+    assert '"/tmp/buffbot-${RELEASE_TAG}-RECOMMENDED-with-LuaJIT.zip" recommended' in source
+    assert '"/tmp/buffbot-${RELEASE_TAG}-without-LuaJIT.zip" without-luajit' in source
+    assert '"/tmp/buffbot-${RELEASE_TAG}-SHA256SUMS.txt"' in source
     assert "--installer" not in source
     assert "--output" not in source
     assert "cp buffbot/*.lua" not in source
@@ -467,7 +500,8 @@ def test_readme_documents_language_selection_and_complete_catalog_prs() -> None:
     assert "weiDU".casefold() in normalized
     assert "selected UTF-8 catalog".casefold() in normalized
     assert "`override/bfbot_l10n.tra`" in source
-    assert "reads directly" in normalized
+    assert "reads the file when file access is available" in normalized
+    assert "uses the embedded copy otherwise" in normalized
     assert (
         "fetches none of its own strings from the game TLK and adds none to it"
         in source

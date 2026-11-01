@@ -23,7 +23,15 @@ This is an **independent single-player beta alternative to [BuffBot](https://git
 ## Requirements
 
 - **BG:EE, BG2:EE or EET**. **IWD:EE is experimental and untested**; the installer accepts it, but game-specific behavior and item sharing are not verified.
-- **[EEex](https://github.com/Bubb13/EEex) v0.11.0-alpha or later**, with LuaJIT active. EEex v1 is recommended.
+- **[EEex](https://github.com/Bubb13/EEex) v0.11.0-alpha or later**. EEex v1 is recommended. **LuaJIT is recommended, but optional.**
+
+**LuaJIT enables automatic item borrowing, file import/export and file logging.**
+Choose the **Recommended — with LuaJIT** download for these features; it includes
+our setup helper, which activates the matching LuaJIT DLLs from your installed EEex.
+The **Without LuaJIT** download keeps party planning, normal casting and plans
+saved with your game. Automatic borrowing and file features are unavailable with
+built-in Lua; some backpack powers need manual equipment changes. Both downloads
+require EEex, and the selected UI language works in either mode.
 
 Redux has been tested mainly in copied single-player BG2:EE/EET installs. Multiplayer and every game/mod combination have not been checked.
 
@@ -34,7 +42,7 @@ The installer offers English, Simplified Chinese, Italian, German, French, Spani
 <details>
 <summary>Translation status and file details</summary>
 
-WeiDU copies the selected UTF-8 catalog to `override/bfbot_l10n.tra`. BuffBot reads directly from it; it fetches none of its own strings from the game TLK and adds none to it. Numbered preset innates and their string-reference installation are retired.
+WeiDU copies the selected UTF-8 catalog to `override/bfbot_l10n.tra` and embeds it for built-in Lua. BuffBot reads the file when file access is available and uses the embedded copy otherwise; it fetches none of its own strings from the game TLK and adds none to it. Numbered preset innates and their string-reference installation are retired.
 
 The six new catalogs began as AI-authored translations. The German catalog has since been reviewed by the maintainer; none has yet been validated in-game. Native-speaker corrections remain welcome. Earlier Chinese user screenshots confirmed readable CJK labels at the tested resolution/font; alternate resolutions/fonts remain pending. Italian was tested by its contributor. These checks do not mean every new Redux label has been translated or reviewed.
 
@@ -42,13 +50,16 @@ The six new catalogs began as AI-authored translations. The German catalog has s
 
 ## Installation
 
-1. Download the install ZIP from [Releases](https://github.com/zach-hopkins/bg-eeex-buffbot/releases). Extract it into your game folder.
-2. Run **setup-buffbot.exe**.
-3. If LuaJIT is not active, install **BuffBot: EEex LuaJIT Support** first.
-4. Install **BuffBot: In-Game Buff Automation**.
-5. Start the game through **InfinityLoader.exe**.
+1. Download one ZIP from [Releases](https://github.com/zach-hopkins/BuffBot-Redux/releases/tag/v1.10.1-redux-beta.6):
+   - **[Recommended — with LuaJIT](https://github.com/zach-hopkins/BuffBot-Redux/releases/download/v1.10.1-redux-beta.6/buffbot-v1.10.1-redux-beta.6-RECOMMENDED-with-LuaJIT.zip)** — includes the LuaJIT setup helper; installs it before BuffBot.
+   - **[Without LuaJIT](https://github.com/zach-hopkins/BuffBot-Redux/releases/download/v1.10.1-redux-beta.6/buffbot-v1.10.1-redux-beta.6-without-LuaJIT.zip)** — installs BuffBot alone.
+2. Extract the ZIP into your game folder and run **Install-BuffBot.cmd**.
+3. Start the game through **InfinityLoader.exe**.
 
-When updating, select or reinstall both BuffBot components together. If EEex already provides the matching LuaJIT runtime, only the main component is needed. In Project Infinity, put the LuaJIT helper before the main component when using both.
+For manual component selection or Project Infinity, use **setup-buffbot.exe**.
+The Without LuaJIT installer leaves an already-active LuaJIT runtime in place.
+
+When updating an installation that uses BuffBot's LuaJIT helper, select or reinstall both components together. If EEex already provides the matching LuaJIT runtime, only the main component is needed. In Project Infinity, put the optional LuaJIT helper before the main component when using both. To use built-in Lua, skip the helper and leave EEex's own optional LuaJIT component disabled. Finish any item borrowing/return in progress before switching runtimes.
 
 For EET, BuffBot can go after `EET_end`. With EEex v0.11, install EEex and BuffBot after generalized biffing and later steps that replace files. Do not downgrade an existing EEex v1 save just to use this mod.
 
@@ -73,6 +84,11 @@ To uninstall, remove the main component first, then the LuaJIT helper if you use
 **Uses** shows free uses / total uses. For example, **0/1** means one use is available and already reserved by your plan. Hover over the count for a breakdown. A warning appears only when a planned cast has no usable source. Portraits stay visible when uses run out, so you can move a buff from one person to another. Self-only spells stay self-only. A duration range means the available casters can give different durations; each portrait shows its assigned or next-cast duration.
 
 If a planned spell is unavailable, BuffBot skips it and casts the rest. The game message log shows how many planned casts were skipped. Missing entries stay in your saved list so they can work again after you rest or restore their source.
+
+When a run ends normally, **Buff plan completed** appears above the party leader,
+or in the message log if floating text is unavailable. The notice includes the
+number of casts skipped during execution. It appears after pending item returns;
+it confirms the run ended, rather than proving every spell effect landed.
 
 After assigning a buff, the larger **Spell Source** message tells you who will cast it. Click the small gear in that selected recipient's upper-right corner to choose a different source, or leave it on **Auto**. The menu opens beside your click. Click the same gear again to close it.
 

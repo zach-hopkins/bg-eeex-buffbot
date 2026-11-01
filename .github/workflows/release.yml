@@ -60,19 +60,24 @@ jobs:
           cp "$WEIDU_PATH" /tmp/setup-buffbot.exe
           echo "Found WeiDU at: $WEIDU_PATH"
 
-      - name: Build release archive
+      - name: Build release archives
         run: |
           bash tools/build-release.sh \
             /tmp/setup-buffbot.exe \
-            "/tmp/buffbot-${RELEASE_TAG}.zip"
-
-          echo "Archive contents:"
-          unzip -l "/tmp/buffbot-${RELEASE_TAG}.zip"
+            "/tmp/buffbot-${RELEASE_TAG}-RECOMMENDED-with-LuaJIT.zip" recommended
+          bash tools/build-release.sh \
+            /tmp/setup-buffbot.exe \
+            "/tmp/buffbot-${RELEASE_TAG}-without-LuaJIT.zip" without-luajit
+          cd /tmp
+          sha256sum "buffbot-${RELEASE_TAG}-RECOMMENDED-with-LuaJIT.zip" \
+            "buffbot-${RELEASE_TAG}-without-LuaJIT.zip" > "buffbot-${RELEASE_TAG}-SHA256SUMS.txt"
 
       - name: Upload release asset
         run: |
           gh release upload "$RELEASE_TAG" \
-            "/tmp/buffbot-${RELEASE_TAG}.zip" \
+            "/tmp/buffbot-${RELEASE_TAG}-RECOMMENDED-with-LuaJIT.zip" \
+            "/tmp/buffbot-${RELEASE_TAG}-without-LuaJIT.zip" \
+            "/tmp/buffbot-${RELEASE_TAG}-SHA256SUMS.txt" \
             --clobber
         env:
           GH_TOKEN: ${{ github.token }}

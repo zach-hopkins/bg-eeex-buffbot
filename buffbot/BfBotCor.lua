@@ -6,7 +6,7 @@
 
 -- Root namespace
 BfBot = BfBot or {}
-BfBot.VERSION = "1.10.1-redux-beta.5"
+BfBot.VERSION = "1.10.1-redux-beta.6"
 BfBot.REFRESH_LOW_SECONDS = 300
 BfBot.MAX_PRESETS = 8
 BfBot.MAX_SPELL_REPEATS = 5

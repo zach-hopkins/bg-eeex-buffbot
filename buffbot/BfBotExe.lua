@@ -1913,6 +1913,7 @@ end
 
 --- Log execution summary and transition to "done" state.
 function BfBot.Exec._Complete()
+    if BfBot.Exec._state ~= "running" then return end
     if BfBot.Share and BfBot.Share.liveLoan then return end
     if BfBot.Summon then BfBot.Summon.runtime=nil end
     if BfBot.Timing then BfBot.Timing.Reset('complete')end
@@ -1938,6 +1939,13 @@ function BfBot.Exec._Complete()
     BfBot.Exec._LogEntry("DONE",
         string.format("Total: %d | Cast: %d | Skipped: %d", total, cast, skip))
     BfBot._Print("[BuffBot] === Execution Complete ===")
+    -- The legacy sharing wrapper reports only after its final item return.
+    if not (BfBot.Share and BfBot.Share.run) then
+        local notice = skip > 0
+            and BfBot.L10N.Format("feedback.plan_completed_skips", { skipped = skip })
+            or BfBot.L10N.Get("feedback.plan_completed")
+        BfBot.Exec._NotifyLeader(notice)
+    end
     BfBot._CloseLog()
 end
 

@@ -358,6 +358,7 @@ local function inventoryProfile(base,pe)
 end
 local _nativeItemCheck, _nativeItemFFI, _nativeItemChecked
 function BfBot.Scan._NativeCanWearItem(sprite, item)
+    if BfBot._noLuaJIT then return nil, 'native item usability unavailable without LuaJIT' end
     if not _nativeItemChecked then
         _nativeItemChecked = true
         local ok = pcall(function()
@@ -413,6 +414,7 @@ end
 -- Use the stock inventory exchanges for moves into an EMPTY backpack slot.
 local _packAPI, _packChecked, _packBusy
 local function packAPI()
+    if BfBot._noLuaJIT then return nil end
     if _packChecked then return _packAPI end
     _packChecked=true
     local ok=pcall(function()

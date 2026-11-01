@@ -57,6 +57,8 @@ EXPECTED_CATALOG_DIRECTORIES = {
 # schema (or these same catalog comments), not introduce an uncontrolled fourth
 # hand-maintained copy of the ID/key contract.
 CATALOG_SCHEMA = {
+    560: "feedback.plan_completed",
+    561: "feedback.plan_completed_skips",
     1102: "party.text103",
     1103: "party.text104",
     1104: "party.text105",
@@ -179,7 +181,7 @@ CATALOG_SCHEMA = {
     109: "installer.luajit.installed",
     110: "installer.luajit.postcondition_failed",
     111: "installer.component.main",
-    112: "installer.main.luajit_required",
+    112: "installer.main.luajit_optional",
     113: "installer.catalog_directory",
     # Independently resolved innate names (200-207)
     200: "innate.preset_1",
@@ -610,7 +612,7 @@ def test_reviewed_english_and_chinese_ui_wording_is_exact():
     assert chinese[446] == "{seconds}秒"
     assert chinese[452] == "{count}次"
     assert chinese[453] == "[锁]"
-    for tra_id in (500, 504, 506):
+    for tra_id in (504, 506):
         assert "特殊能力" in chinese[tra_id]
         assert "天生能力" not in chinese[tra_id]
     for tra_id in (509, 550):
@@ -919,7 +921,7 @@ def test_bootstrap_loads_core_then_localization_before_all_consumers():
     assert "file-backed localization with English fallback" in source
     core_pos = source.index('Infinity_DoFile("BfBotCor")')
     loc_pos = source.index('Infinity_DoFile("BfBotLoc")')
-    no_luajit_pos = source.index("if BfBot._noIO then")
+    no_luajit_pos = source.index("if BfBot._noLuaJIT then")
     theme_pos = source.index('Infinity_DoFile("BfBotThm")')
     assert core_pos < loc_pos < no_luajit_pos < theme_pos
 

@@ -22,8 +22,8 @@
 @110 = ~Skrypt pomocniczy LuaJIT dla BuffBot nie utworzył wymaganego stanu modułu ładującego EEex. Zainstaluj ponownie EEex z obsługą LuaJIT / Experimental, a następnie ponownie uruchom BuffBot.~
 // installer.component.main
 @111 = ~BuffBot: Automatyczne wzmacnianie w grze~
-// installer.main.luajit_required
-@112 = ~Przed instalacją głównego komponentu BuffBot wymaga aktywnego EEex LuaJIT. Najpierw zainstaluj „BuffBot: Obsługa EEex LuaJIT” albo włącz komponent LuaJIT / Experimental w EEex, a następnie ponownie zainstaluj BuffBot. Użytkownicy Project Infinity muszą umieścić komponent LuaJIT przed „BuffBot: Automatyczne wzmacnianie w grze”.~
+// installer.main.luajit_optional
+@112 = ~LuaJIT is optional. Install the main component alone to disable automatic item borrowing. File import/export and file logging require file access. Saved plans still work.~
 // installer.catalog_directory
 @113 = ~polish~
 
@@ -221,7 +221,7 @@
 @453 = ~[B]~
 
 // feedback.no_luajit
-@500 = ~BuffBot: nie wykryto LuaJIT. Zdolności wrodzone F12, szybkie rzucanie, eksport/import i rejestrowanie są wyłączone. Zainstaluj komponent EEex LuaJIT, aby uzyskać pełną funkcjonalność.~
+@500 = ~BuffBot: LuaJIT is optional. Automatic item borrowing is disabled. File import/export and file logging need file access; plans still save with your game.~
 // feedback.combat_stopped
 @501 = ~BuffBot: wykryto walkę — rzucanie zatrzymane~
 // feedback.cast_timeout
@@ -588,3 +588,8 @@
 @1104 = ~Move~
 // party.text106
 @1105 = ~Recipient: ~
+
+// feedback.plan_completed
+@560 = ~BuffBot: Buff plan completed~
+// feedback.plan_completed_skips
+@561 = ~BuffBot: Buff plan completed ({skipped} casts skipped)~

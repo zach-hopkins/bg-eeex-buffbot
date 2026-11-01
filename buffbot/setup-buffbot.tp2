@@ -1,6 +1,6 @@
 BACKUP ~weidu_external/backup/buffbot~
 AUTHOR ~Chrizhermann (github.com/Chrizhermann/bg-eeex-buffbot)~
-VERSION ~v1.10.1-redux-beta.5~
+VERSION ~v1.10.1-redux-beta.6~
 
 ALWAYS
 // Shared by both components so main validates exactly the state the helper
@@ -155,10 +155,9 @@ LANGUAGE
   ~buffbot/lang/brazilian_portuguese/setup.tra~
 
 // ============================================================
-// Component 1: EEex LuaJIT (required prerequisite for main)
+// Component 1: optional EEex LuaJIT support
 // Keep DESIGNATED 1 for compatibility with existing WeiDU logs/backups.
-// Declared first so selecting both components in one run activates LuaJIT
-// before the main component validates the observable loader state.
+// Declared first so selecting both activates LuaJIT before installing main.
 // ============================================================
 BEGIN @100
 DESIGNATED 1
@@ -348,13 +347,13 @@ END
 
 // Updating a legacy main(0)-then-helper(1) stack temporarily removes the
 // helper after it has already succeeded earlier in this same WeiDU process.
-// Accept only that invocation-local proof; fresh main-only runs still require
-// the exact loader state above and helper uninstalls never seed the proof.
+// Invocation-local proof suppresses a misleading limited-mode notice while
+// the helper is temporarily uninstalled. Main also supports built-in Lua.
 ACTION_IF (
   luajit_active = 0
   AND bfbot_luajit_helper_succeeded_this_run = 0
 ) BEGIN
-  FAIL @112
+  PRINT @112
 END
 
 // WeiDU 249 restores the previously installed %LANGUAGE% while replaying an
@@ -368,6 +367,11 @@ COPY ~buffbot/M_BfBot.lua~   ~override~
 COPY ~buffbot/BfBotCor.lua~  ~override~
 COPY ~buffbot/BfBotLoc.lua~  ~override~
 COPY ~buffbot/lang/%bfbot_selected_language%/setup.tra~ ~override/bfbot_l10n.tra~
+// Embed the selected catalog as inert text for built-in Lua, which has no io.
+COPY - ~buffbot/lang/%bfbot_selected_language%/setup.tra~ ~override/bfbot_l10n.tra~
+  READ_ASCII 0 bfbot_catalog_text (BUFFER_LENGTH)
+COPY ~override/BfBotLoc.lua~ ~override/BfBotLoc.lua~
+  REPLACE_TEXTUALLY ~local _installedCatalog = nil~ ~local _installedCatalog = [====[%bfbot_catalog_text%]====]~
 COPY ~buffbot/BfBotCls.lua~  ~override~
 COPY ~buffbot/BfBotScn.lua~  ~override~
 COPY ~buffbot/BfBot5e.lua~   ~override~

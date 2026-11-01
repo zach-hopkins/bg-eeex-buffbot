@@ -7,13 +7,15 @@
 set -euo pipefail
 
 usage() {
-    echo "Usage: $0 INSTALLER_PATH OUTPUT_ZIP" >&2
+    echo "Usage: $0 INSTALLER_PATH OUTPUT_ZIP [recommended|without-luajit]" >&2
     exit 2
 }
 
-[ "$#" -eq 2 ] || usage
+[ "$#" -ge 2 ] && [ "$#" -le 3 ] || usage
 INSTALLER="$1"
 OUTPUT="$2"
+PROFILE="${3:-standard}"
+case "$PROFILE" in standard|recommended|without-luajit) ;; *) usage ;; esac
 [ -f "$INSTALLER" ] || { echo "ERROR: installer not found: $INSTALLER" >&2; exit 1; }
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -35,7 +37,7 @@ fi
 STAGING="$(mktemp -d)"
 trap 'rm -rf "$STAGING"' EXIT
 
-"$PYTHON_BIN" - "$REPO_DIR" "$INSTALLER" "$OUTPUT" "$STAGING" <<'PY'
+"$PYTHON_BIN" - "$REPO_DIR" "$INSTALLER" "$OUTPUT" "$STAGING" "$PROFILE" <<'PY'
 import os
 import json
 import hashlib
@@ -53,6 +55,7 @@ if output_argument.is_symlink():
     raise SystemExit("ERROR: output ZIP must not be a symlink")
 output = output_argument.parent.resolve() / output_argument.name
 staging = Path(sys.argv[4]).resolve()
+profile = sys.argv[5]
 
 root_files = (
     "README.md",
@@ -220,6 +223,31 @@ for relative in release_sources:
 
 shutil.copy2(installer, staging / "setup-buffbot.exe")
 archive_members = ["setup-buffbot.exe", *release_sources]
+if profile != "standard":
+    components = "1 0" if profile == "recommended" else "0"
+    launcher = (
+        '@echo off\r\nsetlocal\r\npushd "%~dp0"\r\n'
+        f'setup-buffbot.exe --force-install-list {components}\r\n'
+        'set "buffbotExit=%ERRORLEVEL%"\r\npopd\r\nexit /b %buffbotExit%\r\n'
+    )
+    (staging / "Install-BuffBot.cmd").write_bytes(launcher.encode("ascii"))
+    instructions = (
+        "BuffBot Redux - RECOMMENDED (with EEex LuaJIT setup helper)\n\n"
+        "Extract into your game folder and run Install-BuffBot.cmd.\n"
+        "This enables EEex LuaJIT support first, then installs BuffBot.\n"
+        "LuaJIT enables automatic item borrowing, file import/export and file logging.\n"
+        "The helper uses the matching DLLs supplied by your installed EEex;\n"
+        "install EEex with its LuaJIT/Experimental files available first.\n"
+        if profile == "recommended" else
+        "BuffBot Redux - WITHOUT LUAJIT\n\n"
+        "Extract into your game folder and run Install-BuffBot.cmd.\n"
+        "This installs BuffBot alone; EEex is still required.\n"
+        "With built-in Lua, automatic item borrowing and file import/export/logging\n"
+        "are unavailable. Party plans still save with your game.\n"
+        "This installer does not disable LuaJIT if it is already active.\n"
+    )
+    (staging / "INSTALL.txt").write_bytes(instructions.replace("\n", "\r\n").encode("ascii"))
+    archive_members.extend(("Install-BuffBot.cmd", "INSTALL.txt"))
 
 # Write beside the destination and atomically replace only the final path. This
 # avoids partial archives and cannot follow a symlink introduced after the
